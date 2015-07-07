@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+"""module docstring here"""
+
 
 import networkx as nx
 
@@ -27,14 +29,14 @@ def analyse_tree(tree, update_repeats=20, verbose=True):
 
     from bayespy.inference import VB
 
-    Q = VB(*variables.values())
+    inf_engine = VB(*variables.values())
 
     # any node with the property 'observed' has its value fixed
     for node in tree.nodes():
         if 'observed' in tree.node[node]:
             variables[node].observe(tree.node[node]['observed'])
 
-    Q.update(repeat=update_repeats, verbose=verbose)
+    inf_engine.update(repeat=update_repeats, verbose=verbose)
 
     for node, variable in variables.items():
         tree.node[node]['posterior'] = variable.pdf(1)
