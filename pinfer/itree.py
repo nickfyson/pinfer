@@ -3,7 +3,6 @@
 
 from copy import deepcopy
 import networkx as nx
-from collections import defaultdict
 
 
 def _inode_name(geneA, geneB):
@@ -12,7 +11,7 @@ def _inode_name(geneA, geneB):
     return '%s_%s' % tuple(sorted((geneA, geneB)))
 
 
-def get_ordered_nodes(tree, include_leaves=False):
+def get_ordered_nodes(tree, include_leaves=True):
     """return list of all nodes, ordered by distance from tree
     optionally, also return distances as a dictionary"""
 
@@ -32,7 +31,7 @@ def get_ordered_nodes(tree, include_leaves=False):
     return ordered_nodes, distances
 
 
-def normalise_edge_lengths(tree):
+def add_normalised_edge_lengths(tree):
     """annotate all edges such that total depth of tree is normalised to one within each species"""
 
     def relabel_weights(tree, effective_root, remaining_length=1.0):
@@ -80,25 +79,103 @@ def normalise_edge_lengths(tree):
     return
 
 
-def find_extant_interacting_genes(iTree, gene):
-    """return a list of all genes that are both extant and have interactions with passed gene"""
-    print('gene = ', gene)
-    # first we retrieve a list of all the interaction nodes connected to the gene
-    interactions = [n for n in iTree.successors(gene)
-                    if iTree.node[n]['node_type'] == 'interaction']
-    print('interactions = ', interactions)
-    # now we find all the parent nodes of these interactions
-    potentials = []
-    for i in interactions:
-        potentials += [n for n in iTree.predecessors(i) if iTree.node[n]['node_type'] == 'gene']
-    print('potentials = ', potentials)
-    # now we filter the potentials ensuring they are extant
-    potentials = [n for n in potentials if iTree.node[n]['extant'] and iTree.node[n]['D'] == 'Y']
-    print('potentials = ', potentials)
-    # finally, we make these unique and return the set
-    print('unique potentials = ', set(potentials))
-    return set(potentials)
+def label_death_times(tree):
+    """add birth and death time properties to each node"""
 
+    add_normalised_edge_lengths(tree)
+    
+    root = [n for n in tree.nodes() if not tree.predecessors(n)][0]
+
+    for n, d in nx.shortest_path_length(tree, root, weight='length').items():
+        tree.node[n]['t_death'] = d + 1.0
+
+    for n in tree.nodes():
+        try:
+            tree.node[n]['t_birth'] = tree.node[tree.predecessors(n)[0]]['t_death']
+        except IndexError:
+            tree.node[n]['t_birth'] = 0.0
+    
+    return
+    
+
+def get_extants(iTree, gene):
+    """returns a list of all interaction partners of the specified gene"""
+
+    if _is_lost(iTree, gene):
+        return []
+
+    time = iTree.node[gene]['t_birth']
+    
+    extants = []
+    
+    for n in iTree.nodes():
+        if iTree.node[n]['node_type'] != 'gene':
+            pass
+        elif _is_lost(iTree, n):
+            pass
+        elif iTree.node[n]['t_birth'] > time:
+            pass
+        elif iTree.node[n]['t_death'] <= time:
+            pass
+        elif iTree.node[n]['S'] != iTree.node[gene]['S']:
+            pass
+        else:
+            extants.append(n)
+
+    return extants
+
+
+def get_parent_interaction(iTree, interaction):
+    """return the appropriate parent for the given interaction"""
+    
+    # geneA, geneB = interaction.split('_')
+    predecessors = iTree.predecessors(interaction)
+    geneA = predecessors[0]
+    try:
+        geneB = predecessors[1]
+    except IndexError:
+        geneB = predecessors[0]
+    
+    try:
+        if iTree.node[geneA]['t_birth'] > iTree.node[geneB]['t_birth']:
+            ancestorA = iTree.predecessors(geneA)[0]
+            ancestorB = geneB
+        else:
+            ancestorA = geneA
+            ancestorB = iTree.predecessors(geneB)[0]
+    except IndexError:
+        # if there are no ancestors, then we're looking at the ancenstral interaction
+        return None
+    
+    while True:
+
+        # if we have found the same ancestor for both, we know that
+        # the parent interaction must be the self-interaction
+        if ancestorA == ancestorB:
+            parent_interaction = _inode_name(ancestorA, ancestorB)
+            break
+
+        # find the common interaction child of these two parent nodes
+        childrenA = set([n for n in iTree.successors(ancestorA)
+                         if iTree.node[n]['node_type'] == 'interaction'])
+        childrenB = set([n for n in iTree.successors(ancestorB)
+                         if iTree.node[n]['node_type'] == 'interaction'])
+
+        # if there is a common node, we have a winner!
+        if childrenA.intersection(childrenB):
+            parent_interaction = childrenA.intersection(childrenB).pop()
+            break
+        
+        # if not, we replace the most recently deceased ancestor node with *its* ancestor gene
+        if iTree.node[ancestorA]['t_birth'] > iTree.node[ancestorB]['t_birth']:
+            ancestorA = iTree.predecessors(ancestorA)[0]
+            ancestorB = ancestorB
+        else:
+            ancestorA = ancestorA
+            ancestorB = iTree.predecessors(ancestorB)[0]
+
+    return parent_interaction
+    
 
 def _is_lost(iTree, gene):
     """simple function to determine whether the gene has been lost"""
@@ -111,169 +188,41 @@ def build_itree(gTree):
     
     iTree = deepcopy(gTree)
     iTree.graph['name'] = 'iTree'
-    iTree.graph['extants'] = defaultdict(set)
 
     # all existing nodes are annotated as genes
     for node in iTree.nodes():
         iTree.node[node]['node_type'] = 'gene'
-
-    normalise_edge_lengths(iTree)
+ 
+    label_death_times(iTree)
 
     # first we build a list of nodes ordered by the distance from the root
-    ordered_nodes, distances = get_ordered_nodes(iTree)
+    # ordered_nodes = get_ordered_nodes(iTree)
+    
+    ordered_nodes = [(n, iTree.node[n]['t_birth']) for n in iTree.nodes()]
 
-    root = ordered_nodes[0]
-    # we initialise with the ancestral self-interaction
-    interaction = _inode_name(root, root)
-    iTree.add_node(interaction, node_type='interaction', S=iTree.node[root]['S'])
-    # we begin with a single extant gene, and add it to the relevant species set
-    iTree.graph['extants'][iTree.node[root]['S']].add(root)
+    ordered_nodes = [n for n, d in sorted(ordered_nodes, key=lambda x:x[1])]
 
-    # we now sweep through the original gene tree,
-    # moving the effective time forward till we hit each branching point
-    # in each iteration we remove the node, and add interactions from its children
-    for dying_gene in ordered_nodes:
+    for gene in ordered_nodes:
 
-        # if _is_lost(iTree, dying_gene):
-            # continue
-        
-        # newly born genes are the child genes of the dying gene
-        born_genes = [n for n in iTree.edge[dying_gene] if iTree.node[n]['node_type'] == 'gene']
-        
-        # duplication and non-duplication events are handled differently
-        if iTree.node[dying_gene]['D'] == 'Y':
-
-            # the parent node has branched, and is no longer extant
-            iTree.graph['extants'][iTree.node[dying_gene]['S']].remove(dying_gene)
-
-            # for duplications we edit the extant list for the dying_gene species
-            for born_gene in born_genes:
-                # if _is_lost(iTree, born_gene):
-                    # continue
-                iTree.graph['extants'][iTree.node[dying_gene]['S']].add(born_gene)
-
-        else:
-            # for speciation, if the species extants sets don't exist, we initialise them
-            if iTree.node[born_genes[0]]['S'] not in iTree.graph['extants']:
-                for born_gene in born_genes:
-                    # if _is_lost(iTree,born_gene):
-                        # continue
-                    iTree.graph['extants'][iTree.node[born_gene]['S']].update(
-                        iTree.graph['extants'][iTree.node[dying_gene]['S']])
-
-            # now both these lists will be updated to reflect the branched gene
-            for born_gene in born_genes:
-
-                # if _is_lost(iTree,born_gene):
-                    # continue
-                try:
-                    iTree.graph['extants'][iTree.node[born_gene]['S']].remove(dying_gene)
-                except Exception as e:
-                    pass
-                    # print('born_gene  ', born_gene, iTree.node[born_gene])
-                    # print('dying_gene ', dying_gene, iTree.node[dying_gene])
-                    # for key in iTree.graph['extants']:
-                    #     print(key, iTree.graph['extants'][key])
-                    # raise e
-
-                # if _is_lost(iTree,born_gene):
-                    # continue
-                iTree.graph['extants'][iTree.node[born_gene]['S']].add(born_gene)
-
-            # finally, the branched gene is longer extant in the ancestral species
-            try:
-                iTree.graph['extants'][iTree.node[dying_gene]['S']].remove(dying_gene)
-            except Exception as e:
-                print(born_gene, iTree.node[born_gene])
-                print(dying_gene, iTree.node[dying_gene])
-                for key in iTree.graph['extants']:
-                    print(key, iTree.graph['extants'][key])
-                raise e
-
-        # print(dying_gene)
-        # print(iTree.graph['extants'])
-        # print()
-        
-        # we now have an up-to-date list of genes coexisting with each of the the born genes
-        # we can now add interaction nodes for each of these new genes
-        for born_gene in born_genes:
+        for extant in get_extants(iTree, gene):
             
-            # a lost gene does not have an interactions
-            # if _is_lost(iTree,born_gene):
-                # continue
-
-            for extant_gene in iTree.graph['extants'][iTree.node[born_gene]['S']]:
+            # if doesn't already exist, add an interaction between node and gene
+            if _inode_name(gene, extant) not in iTree.nodes():
                 
-                interaction = _inode_name(extant_gene, born_gene)
+                new_interaction = _inode_name(gene, extant)
+                iTree.add_node(new_interaction,
+                               node_type='interaction',
+                               S=iTree.node[gene]['S']
+                               )
 
-                iTree.add_node(interaction, node_type='interaction', S=iTree.node[born_gene]['S'])
+                iTree.add_edge(gene, new_interaction)
+                iTree.add_edge(extant, new_interaction)
 
-                # we find the existing interaction node that is parent to this novel interaction
-                # if the new interaction is a self-interaction, so is the parent interaction
-                if born_gene == extant_gene:
-                    interaction_parent = _inode_name(dying_gene, dying_gene)
-                # if extant_gene also one of the newly born ones, parent is a self interaction
-                elif extant_gene in born_genes:
-                    interaction_parent = _inode_name(dying_gene, dying_gene)
-                # otherwise, the parent is a hetero interaction
-                else:
-                    interaction_parent = _inode_name(dying_gene, extant_gene)
-                
-                if interaction_parent in iTree.nodes():
-                    # print('born_gene  ', born_gene, iTree.node[born_gene])
-                    # print('dying_gene ', dying_gene, iTree.node[dying_gene])
-                    # print('interaction ', interaction)
-                    # print('interaction_parent ', interaction_parent)
-                    # return iTree
-                    # raise Exception('missing parent!')
-                    iTree.add_edge(interaction_parent, interaction)
+                parent_interaction = get_parent_interaction(iTree, new_interaction)
+
+                if parent_interaction:
+                    iTree.add_edge(parent_interaction, new_interaction)
     
-    iTree.remove_nodes_from([n for n in iTree.nodes()
-                            if iTree.node[n].get('node_type', '') == 'gene'])
-    
-    # clean out all nodes that correspond to lost genes
-    for node in iTree.nodes():
-        # print('_'.join([gTree.node[g]['name'] for g in node.split('_')]).lower())
-        if 'lost' in '_'.join([gTree.node[g]['name'] for g in node.split('_')]).lower():
-            iTree.remove_node(node)
-
-    # prune all leaf interactions that don't correspond to extant genes
-    extants = set([gTree.node[n]['name'] for n in gTree.nodes() if gTree.out_degree(n) == 0])
-    # print(extants)
-
-    superfluous = [n for n in iTree.nodes() if iTree.out_degree(n) == 0 and (
-                   gTree.node[n.split('_')[0]]['name'] not in extants or
-                   gTree.node[n.split('_')[1]]['name'] not in extants)
-                   ]
-    # print(len(superfluous))
-
-    # while superfluous:
-    #
-    #     iTree.remove_nodes_from(superfluous)
-    #
-    #     superfluous = [n for n in iTree.nodes() if iTree.out_degree(n) == 0 and (
-    #                    gTree.node[n.split('_')[0]]['name'] not in extants or
-    #                    gTree.node[n.split('_')[1]]['name'] not in extants)
-    #                    ]
-
-    # print(len(superfluous))
-    # for node in [n for n in iTree.nodes() if iTree.out_degree(n)==0]:
-    #     if node.split('_')[0] in extants and node.split('_')[1] in extants:
-    #         pass
-    #     else:
-    #         iTree.remove_node(node)
-    
-    # strip out all nodes that are not descendents of the new root
-    # for node in iTree.nodes():
-    #     if not nx.has_path(iTree, _inode_name(root, root), node):
-    #         iTree.remove_node(node)
-
-    # all_extants = set()
-    # for extants in iTree.graph['extants'].values():
-    #     all_extants.update(extants)
-    #
-    # for node in iTree.nodes():
-    #     if set(node.split('_')).intersection(all_extants):
-    #         iTree.node[node]['extant'] = True
+    iTree.remove_nodes_from([n for n in iTree.nodes() if iTree.node[n]['node_type'] == 'gene'])
 
     return iTree
