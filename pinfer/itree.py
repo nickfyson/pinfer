@@ -145,7 +145,7 @@ def get_parent_interaction(iTree, interaction):
             ancestorB = iTree.predecessors(geneB)[0]
     except IndexError:
         # if there are no ancestors, then we're looking at the ancenstral interaction
-        return None
+        return None, None
     
     while True:
 
@@ -163,6 +163,8 @@ def get_parent_interaction(iTree, interaction):
 
         # if there is a common node, we have a winner!
         if childrenA.intersection(childrenB):
+            if len(childrenA.intersection(childrenB)) > 1:
+                raise Exception('Uh oh! Too many children in common!')
             parent_interaction = childrenA.intersection(childrenB).pop()
             break
         
@@ -173,8 +175,13 @@ def get_parent_interaction(iTree, interaction):
         else:
             ancestorA = ancestorA
             ancestorB = iTree.predecessors(ancestorB)[0]
+    
+    # we can also return the edge length here...
+    evolution_of_A = nx.shortest_path_length(iTree, source=ancestorA, target=geneA, weight='weight')
+    evolution_of_B = nx.shortest_path_length(iTree, source=ancestorB, target=geneB, weight='weight')
+    evol_dist    = evolution_of_A + evolution_of_B
 
-    return parent_interaction
+    return parent_interaction, evol_dist
     
 
 def _is_lost(iTree, gene):
@@ -218,10 +225,10 @@ def build_itree(gTree):
                 iTree.add_edge(gene, new_interaction)
                 iTree.add_edge(extant, new_interaction)
 
-                parent_interaction = get_parent_interaction(iTree, new_interaction)
+                parent_interaction, evol_dist = get_parent_interaction(iTree, new_interaction)
 
                 if parent_interaction:
-                    iTree.add_edge(parent_interaction, new_interaction)
+                    iTree.add_edge(parent_interaction, new_interaction, evol_dist=evol_dist)
     
     iTree.remove_nodes_from([n for n in iTree.nodes() if iTree.node[n]['node_type'] == 'gene'])
 
