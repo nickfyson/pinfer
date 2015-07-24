@@ -5,7 +5,7 @@ from copy import deepcopy
 import networkx as nx
 
 
-def _inode_name(geneA, geneB):
+def get_inode_name(geneA, geneB):
     # the name of interaction nodes is a concatenation of the two gene names
     # crucially, these are always sorted so the order in which genes are passed is irrelevant
     return '%s_%s' % tuple(sorted((geneA, geneB)))
@@ -152,7 +152,7 @@ def get_parent_interaction(iTree, interaction):
         # if we have found the same ancestor for both, we know that
         # the parent interaction must be the self-interaction
         if ancestorA == ancestorB:
-            parent_interaction = _inode_name(ancestorA, ancestorB)
+            parent_interaction = get_inode_name(ancestorA, ancestorB)
             break
 
         # find the common interaction child of these two parent nodes
@@ -215,10 +215,10 @@ def build_itree(gTree):
         for extant in get_extants(iTree, gene):
             
             # if doesn't already exist, add an interaction between node and gene
-            if _inode_name(gene, extant) not in iTree.nodes():
+            if get_inode_name(gene, extant) not in iTree.nodes():
                 
-                new_interaction = _inode_name(gene, extant)
-                new_int_name    = _inode_name(gTree.node[gene]['name'], gTree.node[extant]['name'])
+                new_interaction = get_inode_name(gene, extant)
+                new_int_name    = get_inode_name(gTree.node[gene]['name'], gTree.node[extant]['name'])
                 iTree.add_node(new_interaction,
                                node_type='interaction',
                                S=iTree.node[gene]['S'],
