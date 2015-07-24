@@ -22,7 +22,7 @@ def load_notung_nhx(filename):
 
     node_translator = {}
     for node in tree.nodes():
-        node_translator[node] = len(node_translator)
+        node_translator[node] = str(len(node_translator))
 
     graph = DiGraph()
 
