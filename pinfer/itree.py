@@ -160,11 +160,12 @@ def get_parent_interaction(iTree, interaction):
                          if iTree.node[n]['node_type'] == 'interaction'])
         childrenB = set([n for n in iTree.successors(ancestorB)
                          if iTree.node[n]['node_type'] == 'interaction'])
-
+        
+        # as a sanity check, it should be impossible to have *more* than 1 common child
+        if len(childrenA.intersection(childrenB)) > 1:
+            raise Exception('Uh oh! Too many children in common!')
         # if there is a common node, we have a winner!
         if childrenA.intersection(childrenB):
-            if len(childrenA.intersection(childrenB)) > 1:
-                raise Exception('Uh oh! Too many children in common!')
             parent_interaction = childrenA.intersection(childrenB).pop()
             break
         
@@ -217,9 +218,11 @@ def build_itree(gTree):
             if _inode_name(gene, extant) not in iTree.nodes():
                 
                 new_interaction = _inode_name(gene, extant)
+                new_int_name    = _inode_name(gTree.node[gene]['name'], gTree.node[extant]['name'])
                 iTree.add_node(new_interaction,
                                node_type='interaction',
-                               S=iTree.node[gene]['S']
+                               S=iTree.node[gene]['S'],
+                               name=new_int_name
                                )
 
                 iTree.add_edge(gene, new_interaction)
@@ -230,6 +233,31 @@ def build_itree(gTree):
                 if parent_interaction:
                     iTree.add_edge(parent_interaction, new_interaction, evol_dist=evol_dist)
     
+    # we can use the remaining gTree nodes to mark all the extant interactions
+    extant_gnodes = set([n for n in gTree.nodes() if not gTree.successors(n)])
+
+    for inode in [n for n in iTree.nodes() if iTree.node[n]['node_type'] == 'interaction']:
+
+        parent_genes = [n for n in iTree.predecessors(inode)
+                        if iTree.node[n]['node_type'] == 'gene']
+               
+        if set(parent_genes).issubset(extant_gnodes):
+            iTree.node[inode]['extant'] = True
+    
+    # we don't want the gTree nodes actually remaining as part of the iTree
     iTree.remove_nodes_from([n for n in iTree.nodes() if iTree.node[n]['node_type'] == 'gene'])
+    
+    # gene loss at speciation means some interactions may be deadends,
+    # and are not in fact ancestors of any extant interactions
+    # these can be safely culled, with no effect results
+    
+    # we first find the set of all nodes that are ancestors of extant interactions
+    all_required = []
+    for n in [n for n in iTree.nodes() if iTree.node[n].get('extant', False)]:
+        all_required += [n]
+        all_required += nx.ancestors(iTree, n)
+    
+    # we can now remove all nodes that are *not* in this required set
+    iTree.remove_nodes_from([n for n in iTree.nodes() if n not in all_required])
 
     return iTree
