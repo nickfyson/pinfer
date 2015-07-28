@@ -218,7 +218,8 @@ def build_itree(gTree):
             if get_inode_name(gene, extant) not in iTree.nodes():
                 
                 new_interaction = get_inode_name(gene, extant)
-                new_int_name    = get_inode_name(gTree.node[gene]['name'], gTree.node[extant]['name'])
+                new_int_name    = get_inode_name(gTree.node[gene]['name'],
+                                                 gTree.node[extant]['name'])
                 iTree.add_node(new_interaction,
                                node_type='interaction',
                                S=iTree.node[gene]['S'],
@@ -247,17 +248,4 @@ def build_itree(gTree):
     # we don't want the gTree nodes actually remaining as part of the iTree
     iTree.remove_nodes_from([n for n in iTree.nodes() if iTree.node[n]['node_type'] == 'gene'])
     
-    # gene loss at speciation means some interactions may be deadends,
-    # and are not in fact ancestors of any extant interactions
-    # these can be safely culled, with no effect results
-    
-    # we first find the set of all nodes that are ancestors of extant interactions
-    all_required = []
-    for n in [n for n in iTree.nodes() if iTree.node[n].get('extant', False)]:
-        all_required += [n]
-        all_required += nx.ancestors(iTree, n)
-    
-    # we can now remove all nodes that are *not* in this required set
-    iTree.remove_nodes_from([n for n in iTree.nodes() if n not in all_required])
-
     return iTree
