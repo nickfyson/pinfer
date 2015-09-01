@@ -48,7 +48,8 @@ def analyse_pymc(tree, samples=1000, burns=500):
     import numpy as np
     import pymc as pm
 
-    variables = {}
+    nodes = {}
+    trans = {}
 
     for node in nx.topological_sort(tree):
 
@@ -56,25 +57,21 @@ def analyse_pymc(tree, samples=1000, burns=500):
         if tree.in_degree(node) == 0:
             prior = tree.node[node]['prior']
             
-            variables[node] = pm.Categorical(node, [1 - prior, prior])
+            nodes[node] = pm.Categorical(node, [1 - prior, prior])
 
         for s, t in tree.in_edges(node):
 
             p_transitions = tree.edge[s][t]['p_transitions']
             
-            variables['t_%s' % t] = pm.Index('t_%s' % t, p_transitions, variables[s])
+            trans[t] = pm.Index('tran_%s' % t, p_transitions, nodes[s])
             
             if 'observed' in tree.node[t]:
-                observed = True
-                value    = int(tree.node[t]['observed'])
+                nodes[t] = pm.Categorical(t, trans[t],
+                                          observed=True, value=tree.node[t]['observed'])
             else:
-                observed = None
-                value    = None
-            
-            variables[t] = pm.Categorical(t, variables['t_%s' % t],
-                                          observed=observed, value=value)
+                nodes[t] = pm.Categorical(t, trans[t])
     
-    model = pm.MCMC(list(variables.values()))
+    model = pm.MCMC(list(nodes.values()) + list(trans.values()))
 
     model.sample(10000, 5000)
 
