@@ -81,3 +81,13 @@ def analyse_pymc(tree, samples=1000, burns=500):
     model = None
 
     return tree
+
+def pass_messages(tree, update_repeats=10, verbose=True):
+    """
+    Use the Pearl message passing algorithm to calculate 
+    exact posterior probabilities"""
+
+
+
+
+    return
