@@ -84,6 +84,108 @@ def analyse_pymc(tree, samples=1000, burns=500):
     return tree
 
 
+def _initialise_polytree(tree):
+
+    for node in nx.topological_sort(tree):
+            
+        # all diagnostic evidence and diagnostic messages are initialised to [1,1]
+        tree.node[node]['diagnostic'] = np.array([1.0, 1.0])
+        for child in tree.successors(node):
+            tree.edge[node][child]['diagnostic'] = np.array([1.0, 1.0])
+        
+        # for ancestor nodes causal support is just the prior probability
+        if not tree.predecessors(node):
+            causal = np.array(tree.node[node]['prior'])
+        # otherwise, causal support can be calculated by reference to that of parents
+        else:
+            # matrix multiplication of CPT by each message in turn
+            causal = tree.node[node]['CPT']
+            # dot acts on penultimate axis, hence reversed sorting
+            for parent in sorted(tree.predecessors(node), reverse=True):
+                causal = np.dot(tree.edge[parent][node]['causal'], causal)
+
+        # having calculated the causal support, we can store it as a property of the node
+        tree.node[node]['causal'] = causal
+        # in initialising, causal messages are simply equal to that of the node
+        for child in tree.successors(node):
+            tree.edge[node][child]['causal'] = causal
+
+        # finally, we can now calculate the initial belief for each node
+        tree.node[node]['belief'] = ((tree.node[node]['causal'] *
+                                      tree.node[node]['diagnostic']) /
+                                     sum(tree.node[node]['causal'] *
+                                         tree.node[node]['diagnostic']))
+    tree.graph['initialised'] = True
+
+def _update_node(tree, node):
+
+    ##########
+    # update causal support based on incoming messages
+    ##########
+    # for ancestor nodes causal support is just the prior probability
+    # for all other nodes we recalculate based on messages from parents
+    if tree.predecessors(node):
+        # matrix multiplication of CPT by each message in turn
+        causal = tree.node[node]['CPT']
+        # dot acts on penultimate axis, hence reversed sorting
+        for parent in sorted(tree.predecessors(node), reverse=True):
+            causal = np.dot(tree.edge[parent][node]['causal'], causal)
+        tree.node[node]['causal'] = causal
+
+    ##########
+    # update diagnostic support based on incoming messages
+    ##########
+    if tree.successors(node):
+        diagnostic = tree.node[node].get('evidence',
+                                         np.ones(len(tree.node[node]['diagnostic'])))
+        for child in tree.successors(node):
+            diagnostic = diagnostic * tree.edge[node][child]['diagnostic']
+        tree.node[node]['diagnostic'] = diagnostic
+
+    ##########
+    # update outgoing causal message
+    ##########
+    for child in tree.successors(node):
+        causal_support     = tree.node[node]['causal']
+        diagnostic_support = tree.node[node].get('evidence',
+                                                 np.ones(len(tree.node[node]['causal'])))
+
+        diagnostic_summary = np.ones(len(causal_support))
+        for child_other in tree.successors(node):
+            if child != child_other:
+                diagnostic_summary = (diagnostic_summary *
+                                      tree.edge[node][child_other]['diagnostic'])
+        tree.edge[node][child]['causal'] = (causal_support *
+                                            diagnostic_support * diagnostic_summary)
+        # tree.edge[node][child]['causal'] = np.random.random((2,))
+
+    ##########
+    # update outgoing diagnostic message
+    ##########
+    parents = sorted(deepcopy(tree.predecessors(node)))
+    for i, parent in enumerate(parents):
+
+        CPT     = deepcopy(tree.node[node]['CPT'])
+
+        others  = parents[:i] + parents[i + 1:]
+        CPTcopy = np.swapaxes(CPT, 0, i)
+
+        for other in reversed(others):
+            CPTcopy = np.dot(tree.edge[other][node]['causal'], CPTcopy)
+
+        diag_message = np.dot(tree.node[node]['diagnostic'], CPTcopy.T)
+
+        tree.edge[parent][node]['diagnostic'] = diag_message
+
+    ##########
+    # finally, we can now update the belief for this node
+    ##########
+    tree.node[node]['belief'] = ((tree.node[node]['causal'] * tree.node[node]['diagnostic']) /
+                                 sum(tree.node[node]['causal'] * tree.node[node]['diagnostic']))
+
+    return
+
+
 def polytree(tree):
     """
     Use the message passing algorithm from Pearl 1982 to calculate
@@ -99,110 +201,12 @@ def polytree(tree):
     """
     from itertools import combinations
 
-    def update_node(tree, node):
-
-        ##########
-        # update causal support based on incoming messages
-        ##########
-        # for ancestor nodes causal support is just the prior probability
-        # for all other nodes we recalculate based on messages from parents
-        if tree.predecessors(node):
-            # matrix multiplication of CPT by each message in turn
-            causal = tree.node[node]['CPT']
-            # dot acts on penultimate axis, hence reversed sorting
-            for parent in sorted(tree.predecessors(node), reverse=True):
-                causal = np.dot(tree.edge[parent][node]['causal'], causal)
-            tree.node[node]['causal'] = causal
-
-        ##########
-        # update diagnostic support based on incoming messages
-        ##########
-        if tree.successors(node):
-            diagnostic = tree.node[node].get('evidence',
-                                             np.ones(len(tree.node[node]['diagnostic'])))
-            for child in tree.successors(node):
-                diagnostic = diagnostic * tree.edge[node][child]['diagnostic']
-            tree.node[node]['diagnostic'] = diagnostic
-
-        ##########
-        # update outgoing causal message
-        ##########
-        for child in tree.successors(node):
-            causal_support     = tree.node[node]['causal']
-            diagnostic_support = tree.node[node].get('evidence',
-                                                     np.ones(len(tree.node[node]['causal'])))
-
-            diagnostic_summary = np.ones(len(causal_support))
-            for child_other in tree.successors(node):
-                if child != child_other:
-                    diagnostic_summary = (diagnostic_summary *
-                                          tree.edge[node][child_other]['diagnostic'])
-            tree.edge[node][child]['causal'] = (causal_support *
-                                                diagnostic_support * diagnostic_summary)
-            # tree.edge[node][child]['causal'] = np.random.random((2,))
-
-        ##########
-        # update outgoing diagnostic message
-        ##########
-        parents = sorted(deepcopy(tree.predecessors(node)))
-        for i, parent in enumerate(parents):
-
-            CPT     = deepcopy(tree.node[node]['CPT'])
-
-            others  = parents[:i] + parents[i + 1:]
-            CPTcopy = np.swapaxes(CPT, 0, i)
-
-            for other in reversed(others):
-                CPTcopy = np.dot(tree.edge[other][node]['causal'], CPTcopy)
-
-            diag_message = np.dot(tree.node[node]['diagnostic'], CPTcopy.T)
-
-            tree.edge[parent][node]['diagnostic'] = diag_message
-
-        ##########
-        # finally, we can now update the belief for this node
-        ##########
-        tree.node[node]['belief'] = ((tree.node[node]['causal'] * tree.node[node]['diagnostic']) /
-                                     sum(tree.node[node]['causal'] * tree.node[node]['diagnostic']))
-
-        return
-
     ##########
     # if necessary we initialise causal and diagnostic support values in the tree
     ##########
     if not tree.graph.get('initialised', False):
-
-        for node in nx.topological_sort(tree):
-            
-            # all diagnostic evidence and diagnostic messages are initialised to [1,1]
-            tree.node[node]['diagnostic'] = np.array([1.0, 1.0])
-            for child in tree.successors(node):
-                tree.edge[node][child]['diagnostic'] = np.array([1.0, 1.0])
-            
-            # for ancestor nodes causal support is just the prior probability
-            if not tree.predecessors(node):
-                causal = np.array(tree.node[node]['prior'])
-            # otherwise, causal support can be calculated by reference to that of parents
-            else:
-                # matrix multiplication of CPT by each message in turn
-                causal = tree.node[node]['CPT']
-                # dot acts on penultimate axis, hence reversed sorting
-                for parent in sorted(tree.predecessors(node), reverse=True):
-                    causal = np.dot(tree.edge[parent][node]['causal'], causal)
-
-            # having calculated the causal support, we can store it as a property of the node
-            tree.node[node]['causal'] = causal
-            # in initialising, causal messages are simply equal to that of the node
-            for child in tree.successors(node):
-                tree.edge[node][child]['causal'] = causal
-
-            # finally, we can now calculate the initial belief for each node
-            tree.node[node]['belief'] = ((tree.node[node]['causal'] *
-                                          tree.node[node]['diagnostic']) /
-                                         sum(tree.node[node]['causal'] *
-                                             tree.node[node]['diagnostic']))
-        tree.graph['initialised'] = True
-    
+        _initialise_polytree(tree)
+        
     ##########
     # we now use the 'observation' property to set the diagnostic evidence for all nodes
     ##########
@@ -242,14 +246,14 @@ def polytree(tree):
     ##########
     # the ordering is reversed, and only those in the change_set addressed
     for node in [n for n in reversed(ordered_nodes) if n in change_set]:
-        update_node(tree, node)
+        _update_node(tree, node)
     
     ##########
     # second pass - outwards
     # we now propagate changes from the pivot node out to all other nodes
     ##########
     for node in ordered_nodes:
-        update_node(tree, node)
+        _update_node(tree, node)
 
     # finally, we can strip the 'observation' property from all nodes
     # since this evidence has now been incorporated
