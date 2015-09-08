@@ -186,7 +186,7 @@ def _update_node(tree, node):
     return
 
 
-def polytree(tree):
+def polytree(tree, verbose=False):
     """
     Use the message passing algorithm from Pearl 1982 to calculate
     exact posterior probabilities
@@ -246,6 +246,8 @@ def polytree(tree):
     ##########
     # the ordering is reversed, and only those in the change_set addressed
     for node in [n for n in reversed(ordered_nodes) if n in change_set]:
+        if verbose:
+            print('inward', node)
         _update_node(tree, node)
     
     ##########
@@ -253,6 +255,8 @@ def polytree(tree):
     # we now propagate changes from the pivot node out to all other nodes
     ##########
     for node in ordered_nodes:
+        if verbose:
+            print('outward', node)
         _update_node(tree, node)
 
     # finally, we can strip the 'observation' property from all nodes
