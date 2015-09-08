@@ -218,8 +218,7 @@ def polytree(tree):
     changed = [n for n in tree.nodes() if 'observation' in tree.node[n]]
     # find all nodes found in all paths between all pairs of nodes
     if len(changed) == 0:
-        change_set    = set()
-        ordered_nodes = tree.nodes()
+        return tree
     else:
         change_set = set()
         for a, b in combinations(changed, 2):
@@ -243,7 +242,6 @@ def polytree(tree):
     ##########
     # the ordering is reversed, and only those in the change_set addressed
     for node in [n for n in reversed(ordered_nodes) if n in change_set]:
-        print('inwards', node)
         update_node(tree, node)
     
     ##########
@@ -251,7 +249,6 @@ def polytree(tree):
     # we now propagate changes from the pivot node out to all other nodes
     ##########
     for node in ordered_nodes:
-        print('outwards', node)
         update_node(tree, node)
 
     # finally, we can strip the 'observation' property from all nodes
