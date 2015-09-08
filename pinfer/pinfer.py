@@ -168,49 +168,54 @@ def polytree(tree):
         return
 
     ##########
-    # we first initialise causal and diagnostic support values in the tree
+    # if necessary we initialise causal and diagnostic support values in the tree
     ##########
-    for node in nx.topological_sort(tree):
-        
-        # all diagnostic evidence and diagnostic messages are initialised to [1,1]
-        tree.node[node]['diagnostic'] = np.array([1.0, 1.0])
-        for child in tree.successors(node):
-            tree.edge[node][child]['diagnostic'] = np.array([1.0, 1.0])
-        
-        # for ancestor nodes causal support is just the prior probability
-        if not tree.predecessors(node):
-            causal = np.array(tree.node[node]['prior'])
-        # otherwise, causal support can be calculated by reference to that of parents
-        else:
-            # matrix multiplication of CPT by each message in turn
-            causal = tree.node[node]['CPT']
-            # dot acts on penultimate axis, hence reversed sorting
-            for parent in sorted(tree.predecessors(node), reverse=True):
-                causal = np.dot(tree.edge[parent][node]['causal'], causal)
+    if not tree.graph.get('initialised', False):
 
-        # having calculated the causal support, we can store it as a property of the node
-        tree.node[node]['causal'] = causal
-        # in initialising, causal messages are simply equal to that of the node
-        for child in tree.successors(node):
-            tree.edge[node][child]['causal'] = causal
+        for node in nx.topological_sort(tree):
+            
+            # all diagnostic evidence and diagnostic messages are initialised to [1,1]
+            tree.node[node]['diagnostic'] = np.array([1.0, 1.0])
+            for child in tree.successors(node):
+                tree.edge[node][child]['diagnostic'] = np.array([1.0, 1.0])
+            
+            # for ancestor nodes causal support is just the prior probability
+            if not tree.predecessors(node):
+                causal = np.array(tree.node[node]['prior'])
+            # otherwise, causal support can be calculated by reference to that of parents
+            else:
+                # matrix multiplication of CPT by each message in turn
+                causal = tree.node[node]['CPT']
+                # dot acts on penultimate axis, hence reversed sorting
+                for parent in sorted(tree.predecessors(node), reverse=True):
+                    causal = np.dot(tree.edge[parent][node]['causal'], causal)
 
-        # finally, we can now calculate the initial belief for each node
-        tree.node[node]['belief'] = ((tree.node[node]['causal'] * tree.node[node]['diagnostic']) /
-                                     sum(tree.node[node]['causal'] * tree.node[node]['diagnostic']))
+            # having calculated the causal support, we can store it as a property of the node
+            tree.node[node]['causal'] = causal
+            # in initialising, causal messages are simply equal to that of the node
+            for child in tree.successors(node):
+                tree.edge[node][child]['causal'] = causal
+
+            # finally, we can now calculate the initial belief for each node
+            tree.node[node]['belief'] = ((tree.node[node]['causal'] *
+                                          tree.node[node]['diagnostic']) /
+                                         sum(tree.node[node]['causal'] *
+                                             tree.node[node]['diagnostic']))
+        tree.graph['initialised'] = True
     
     ##########
     # we now use the 'observation' property to set the diagnostic evidence for all nodes
     ##########
     for node in tree.nodes():
-        if 'evidence' in tree.node[node]:
-            tree.node[node]['evidence'] = np.array(tree.node[node]['evidence'])
+        if 'observation' in tree.node[node]:
+            tree.node[node]['evidence']   = np.array(tree.node[node]['observation'])
             tree.node[node]['diagnostic'] = tree.node[node]['evidence']
     
     ##########
     # find appropriate pivot node in the network
     ##########
     # find set of all nodes that have an observation
-    changed = [n for n in tree.nodes() if 'evidence' in tree.node[n]]
+    changed = [n for n in tree.nodes() if 'observation' in tree.node[n]]
     # find all nodes found in all paths between all pairs of nodes
     if len(changed) == 0:
         change_set    = set()
@@ -248,5 +253,11 @@ def polytree(tree):
     for node in ordered_nodes:
         print('outwards', node)
         update_node(tree, node)
+
+    # finally, we can strip the 'observation' property from all nodes
+    # since this evidence has now been incorporated
+    for node in tree.nodes():
+        if 'observation' in tree.node[node]:
+            tree.node[node].pop('observation')
 
     return tree
