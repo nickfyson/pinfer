@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """module docstring here"""
 
+import sys
 import networkx as nx
 import numpy as np
 from copy import deepcopy
@@ -195,7 +196,11 @@ def polytree(tree, verbose=False):
     # if necessary we initialise causal and diagnostic support values in the tree
     ##########
     if not tree.graph.get('initialised', False):
+        if verbose:
+            print('Initialising...')
         _initialise_polytree(tree)
+        if verbose:
+            print('...Initialised')
         
     ##########
     # we now use the 'observation' property to set the diagnostic evidence for all nodes
@@ -208,6 +213,9 @@ def polytree(tree, verbose=False):
     ##########
     # find appropriate pivot node in the network
     ##########
+    if verbose:
+        print('Finding pivot node...')
+        sys.stdout.flush()
     # find set of all nodes that have an observation
     changed = [n for n in tree.nodes() if 'observation' in tree.node[n]]
     # find all nodes found in all paths between all pairs of nodes
@@ -229,24 +237,35 @@ def polytree(tree, verbose=False):
             dist = nx.shortest_path_length(tree.to_undirected(), pivot_node, node)
             ordered_nodes.append((dist, node))
         ordered_nodes = [n for d, n in sorted(ordered_nodes)]
+    if verbose:
+        print('...Pivot found!')
+        sys.stdout.flush()
     
     ##########
     # first pass - inwards
     # we can now propagate changes through the change_set, toward the pivot node
     ##########
     # the ordering is reversed, and only those in the change_set addressed
+    if verbose:
+        print('First pass...')
+        sys.stdout.flush()
     for node in [n for n in reversed(ordered_nodes) if n in change_set]:
         if verbose:
             print('inward', node)
+            sys.stdout.flush()
         _update_node(tree, node)
     
     ##########
     # second pass - outwards
     # we now propagate changes from the pivot node out to all other nodes
     ##########
+    if verbose:
+        print('Second pass...')
+        sys.stdout.flush()
     for node in ordered_nodes:
         if verbose:
             print('outward', node)
+            sys.stdout.flush()
         _update_node(tree, node)
 
     # finally, we can strip the 'observation' property from all nodes
@@ -254,5 +273,7 @@ def polytree(tree, verbose=False):
     for node in tree.nodes():
         if 'observation' in tree.node[node]:
             tree.node[node].pop('observation')
+    if verbose:
+        print('Complete!')
 
     return tree
