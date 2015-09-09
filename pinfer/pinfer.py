@@ -85,37 +85,18 @@ def analyse_pymc(tree, samples=1000, burns=500):
 
 
 def _initialise_polytree(tree):
-
-    for node in nx.topological_sort(tree):
-            
-        # all diagnostic evidence and diagnostic messages are initialised to [1,1]
+    # all diagnostic evidence and diagnostic messages are initialised to [1,1]
+    for node in tree.nodes():
         tree.node[node]['diagnostic'] = np.array([1.0, 1.0])
-        for child in tree.successors(node):
-            tree.edge[node][child]['diagnostic'] = np.array([1.0, 1.0])
-        
-        # for ancestor nodes causal support is just the prior probability
-        if not tree.predecessors(node):
-            causal = np.array(tree.node[node]['prior'])
-        # otherwise, causal support can be calculated by reference to that of parents
-        else:
-            # matrix multiplication of CPT by each message in turn
-            causal = tree.node[node]['CPT']
-            # dot acts on penultimate axis, hence reversed sorting
-            for parent in sorted(tree.predecessors(node), reverse=True):
-                causal = np.dot(tree.edge[parent][node]['causal'], causal)
-
-        # having calculated the causal support, we can store it as a property of the node
-        tree.node[node]['causal'] = causal
-        # in initialising, causal messages are simply equal to that of the node
-        for child in tree.successors(node):
-            tree.edge[node][child]['causal'] = causal
-
-        # finally, we can now calculate the initial belief for each node
-        tree.node[node]['belief'] = ((tree.node[node]['causal'] *
-                                      tree.node[node]['diagnostic']) /
-                                     sum(tree.node[node]['causal'] *
-                                         tree.node[node]['diagnostic']))
+    for s, t in tree.edges():
+        tree.edge[s][t]['diagnostic'] = np.array([1.0, 1.0])
+    # causal support can now be added using the _update_node function
+    for node in nx.topological_sort(tree):
+        _update_node(tree, node)
+    # to enable lazy inclusion of new evidence
+    # we record that the tree is initialised
     tree.graph['initialised'] = True
+
 
 def _update_node(tree, node):
 
@@ -131,6 +112,8 @@ def _update_node(tree, node):
         for parent in sorted(tree.predecessors(node), reverse=True):
             causal = np.dot(tree.edge[parent][node]['causal'], causal)
         tree.node[node]['causal'] = causal
+    else:
+        tree.node[node]['causal'] = np.array(tree.node[node]['prior'])
 
     ##########
     # update diagnostic support based on incoming messages
@@ -164,8 +147,7 @@ def _update_node(tree, node):
     parents = sorted(deepcopy(tree.predecessors(node)))
     for i, parent in enumerate(parents):
         
-        
-        # we swap columns in the CPT such that the one corresponding to the 
+        # we swap columns in the CPT such that the one corresponding to the
         # targeted parent is in position zero
         # this is because we *don't* want to sum over this column
         CPTcopy = np.swapaxes(deepcopy(tree.node[node]['CPT']), 0, i)
