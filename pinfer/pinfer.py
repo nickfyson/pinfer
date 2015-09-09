@@ -157,24 +157,32 @@ def _update_node(tree, node):
                                       tree.edge[node][child_other]['diagnostic'])
         tree.edge[node][child]['causal'] = (causal_support *
                                             diagnostic_support * diagnostic_summary)
-        # tree.edge[node][child]['causal'] = np.random.random((2,))
 
     ##########
     # update outgoing diagnostic message
     ##########
     parents = sorted(deepcopy(tree.predecessors(node)))
     for i, parent in enumerate(parents):
-
-        CPT     = deepcopy(tree.node[node]['CPT'])
-
+        
+        
+        # we swap columns in the CPT such that the one corresponding to the 
+        # targeted parent is in position zero
+        # this is because we *don't* want to sum over this column
+        CPTcopy = np.swapaxes(deepcopy(tree.node[node]['CPT']), 0, i)
+        # we build a list of other parents that does *not* include
+        # the target parent
         others  = parents[:i] + parents[i + 1:]
-        CPTcopy = np.swapaxes(CPT, 0, i)
-
+        
+        # iterating over the other parents in reverse order
+        # leaves the target parent dimension in tact, as required
         for other in reversed(others):
             CPTcopy = np.dot(tree.edge[other][node]['causal'], CPTcopy)
-
+        
+        # we now sum over the parent node dimension
+        # but we take the transpose of the remaining CPT, since we are interested
+        # in the probability over the values of the parent
         diag_message = np.dot(tree.node[node]['diagnostic'], CPTcopy.T)
-
+        # this vector is now the message passed from node to parent
         tree.edge[parent][node]['diagnostic'] = diag_message
 
     ##########
