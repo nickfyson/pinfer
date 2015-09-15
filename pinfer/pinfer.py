@@ -109,9 +109,10 @@ def _update_node(tree, node):
     if tree.predecessors(node):
         # matrix multiplication of CPT by each message in turn
         causal = tree.node[node]['CPT']
-        # dot acts on penultimate axis, hence reversed sorting
-        for parent in sorted(tree.predecessors(node), reverse=True):
-            causal = np.dot(tree.edge[parent][node]['causal'], causal)
+        # we take the dot project of the causal message with the CPT
+        # for each parent in turn (sorted order, as per definition of CPT)
+        for parent in sorted(tree.predecessors(node), reverse=False):
+            causal = np.tensordot(tree.edge[parent][node]['causal'], causal, axes=[0, 0])
         tree.node[node]['causal'] = causal
     else:
         tree.node[node]['causal'] = np.array(tree.node[node]['prior'])
@@ -145,7 +146,7 @@ def _update_node(tree, node):
     ##########
     # update outgoing diagnostic message
     ##########
-    parents = sorted(deepcopy(tree.predecessors(node)))
+    parents = sorted(tree.predecessors(node))
     for i, parent in enumerate(parents):
         
         # we swap columns in the CPT such that the one corresponding to the
@@ -153,18 +154,18 @@ def _update_node(tree, node):
         # this is because we *don't* want to sum over this column
         CPTcopy = np.swapaxes(deepcopy(tree.node[node]['CPT']), 0, i)
         # we build a list of other parents that does *not* include
-        # the target parent
+        # the target parent, but still in sorted order
         others  = parents[:i] + parents[i + 1:]
         
-        # iterating over the other parents in reverse order
+        # we now sum over dimension 1 each time which
         # leaves the target parent dimension in tact, as required
-        for other in reversed(others):
-            CPTcopy = np.dot(tree.edge[other][node]['causal'], CPTcopy)
+        for other in others:
+            CPTcopy = np.tensordot(tree.edge[other][node]['causal'], CPTcopy, axes=[0, 1])
         
         # we now sum over the parent node dimension
-        # but we take the transpose of the remaining CPT, since we are interested
-        # in the probability over the values of the parent
-        diag_message = np.dot(tree.node[node]['diagnostic'], CPTcopy.T)
+        # but we sum over the 2nd dimension, since we are interested
+        # in the probability over the values of the *parent*
+        diag_message = np.tensordot(tree.node[node]['diagnostic'], CPTcopy, axes=[0, 1])
         # this vector is now the message passed from node to parent
         tree.edge[parent][node]['diagnostic'] = diag_message
 
