@@ -89,17 +89,21 @@ def _initialise_polytree(tree):
     # all diagnostic evidence and diagnostic messages are initialised to [1,1]
     for node in tree.nodes():
         tree.node[node]['diagnostic'] = np.array([1.0, 1.0])
+        tree.node[node].pop('causal', None)
     for s, t in tree.edges():
         tree.edge[s][t]['diagnostic'] = np.array([1.0, 1.0])
+        tree.edge[s][t].pop('causal', None)
+
     # causal support can now be added using the _update_node function
     for node in nx.topological_sort(tree):
-        _update_node(tree, node)
+        _update_node(tree, node, debug_message='initialising')
+
     # to enable lazy inclusion of new evidence
     # we record that the tree is initialised
     tree.graph['initialised'] = True
 
 
-def _update_node(tree, node):
+def _update_node(tree, node, debug_message=''):
 
     ##########
     # update causal support based on incoming messages
@@ -143,6 +147,14 @@ def _update_node(tree, node):
         tree.edge[node][child]['causal'] = (causal_support *
                                             diagnostic_support * diagnostic_summary)
 
+        if (tree.edge[node][child]['causal'] == np.array([0., 0.])).all():
+            print('%s is passing non-sensical causal message!' % node)
+            print('causal_support = ', causal_support)
+            print('diagnostic_support = ', diagnostic_support)
+            print('diagnostic_summary = ', diagnostic_summary)
+            print(debug_message)
+            sys.exit()
+
     ##########
     # update outgoing diagnostic message
     ##########
@@ -174,6 +186,15 @@ def _update_node(tree, node):
     ##########
     tree.node[node]['belief'] = ((tree.node[node]['causal'] * tree.node[node]['diagnostic']) /
                                  sum(tree.node[node]['causal'] * tree.node[node]['diagnostic']))
+
+    # add (temprorary?) code to catch obvious errors that may occur
+    if np.isnan(tree.node[node]['belief'][0]) or np.isnan(tree.node[node]['belief'][1]):
+        print('\tupdating %s' % node)
+        print(tree.node[node]['causal'])
+        print(tree.node[node]['diagnostic'])
+        print(tree.node[node].get('CPT', None))
+        sys.exit()
+        pass
 
     return
 
@@ -255,9 +276,9 @@ def polytree(tree, pivot_node=None, verbose=False):
     if verbose:
         print('First pass...')
         sys.stdout.flush()
-    for node in [n for n in reversed(ordered_nodes) if n in change_set]:
-        _update_node(tree, node)
-    
+    for i,node in enumerate([n for n in reversed(ordered_nodes) if n in change_set]):
+        _update_node(tree, node, debug_message='first pass %05d'%i)
+
     ##########
     # second pass - outwards
     # we now propagate changes from the pivot node out to all other nodes
@@ -266,7 +287,7 @@ def polytree(tree, pivot_node=None, verbose=False):
         print('Second pass...')
         sys.stdout.flush()
     for node in ordered_nodes:
-        _update_node(tree, node)
+        _update_node(tree, node, debug_message='second pass')
 
     # finally, we can strip the 'observation' property from all nodes
     # since this evidence has now been incorporated
