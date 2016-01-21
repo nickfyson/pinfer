@@ -10,8 +10,6 @@ Tests for `pinfer` module.
 
 import unittest
 
-from pinfer import pinfer
-
 import networkx as nx
 import numpy as np
 
@@ -60,20 +58,34 @@ class TestPolytree(unittest.TestCase):
 
         polytree(self.tree)
 
-        assert (np.round(self.tree.node['R']['belief'], 8) == np.array([0.26470588, 0.73529412])).all()
-        assert (np.round(self.tree.node['S']['belief'], 8) == np.array([0.66176471, 0.33823529])).all()
-        assert (np.round(self.tree.node['W']['belief'], 8) == np.array([0.21176471, 0.78823529])).all()
-        assert (np.round(self.tree.node['H']['belief'], 8) == np.array([0.00000000, 1.00000000])).all()
-        
+        assert (np.round(self.tree.node['R']['belief'], 8) ==
+                np.array([0.26470588, 0.73529412])).all()
+
+        assert (np.round(self.tree.node['S']['belief'], 8) ==
+                np.array([0.66176471, 0.33823529])).all()
+
+        assert (np.round(self.tree.node['W']['belief'], 8) ==
+                np.array([0.21176471, 0.78823529])).all()
+
+        assert (np.round(self.tree.node['H']['belief'], 8) ==
+                np.array([0.00000000, 1.00000000])).all()
+
         self.tree.node['W']['observation'] = np.array([0., 1.])
 
         polytree(self.tree)
 
-        assert (np.round(self.tree.node['R']['belief'], 8) == np.array([0.06716418, 0.93283582])).all()
-        assert (np.round(self.tree.node['S']['belief'], 8) == np.array([0.83955224, 0.16044776])).all()
-        assert (np.round(self.tree.node['W']['belief'], 8) == np.array([0.00000000, 1.00000000])).all()
-        assert (np.round(self.tree.node['H']['belief'], 8) == np.array([0.00000000, 1.00000000])).all()
-        
+        assert (np.round(self.tree.node['R']['belief'], 8) ==
+                np.array([0.06716418, 0.93283582])).all()
+
+        assert (np.round(self.tree.node['S']['belief'], 8) ==
+                np.array([0.83955224, 0.16044776])).all()
+
+        assert (np.round(self.tree.node['W']['belief'], 8) ==
+                np.array([0.00000000, 1.00000000])).all()
+
+        assert (np.round(self.tree.node['H']['belief'], 8) ==
+                np.array([0.00000000, 1.00000000])).all()
+
     def tearDown(self):
         pass
 

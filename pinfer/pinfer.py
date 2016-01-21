@@ -46,7 +46,7 @@ def analyse_tree(tree, update_repeats=20, verbose=True):
 
 def analyse_pymc(tree, samples=1000, burns=500):
     """docstring for analyse_pymc"""
-    
+
     import numpy as np
     import pymc as pm
 
@@ -58,21 +58,21 @@ def analyse_pymc(tree, samples=1000, burns=500):
         # if there are no incoming edges, this node is the initial state
         if tree.in_degree(node) == 0:
             prior = tree.node[node]['prior']
-            
+
             nodes[node] = pm.Categorical(node, [1 - prior, prior])
 
         for s, t in tree.in_edges(node):
 
             p_transitions = tree.edge[s][t]['p_transitions']
-            
+
             trans[t] = pm.Index('tran_%s' % t, p_transitions, nodes[s])
-            
+
             if 'observed' in tree.node[t]:
                 nodes[t] = pm.Categorical(t, trans[t],
                                           observed=True, value=tree.node[t]['observed'])
             else:
                 nodes[t] = pm.Categorical(t, trans[t])
-    
+
     model = pm.MCMC(list(nodes.values()) + list(trans.values()))
 
     model.sample(10000, 5000)
@@ -160,7 +160,7 @@ def _update_node(tree, node, debug_message=''):
     ##########
     parents = sorted(tree.predecessors(node))
     for i, parent in enumerate(parents):
-        
+
         # we swap columns in the CPT such that the one corresponding to the
         # targeted parent is in position zero
         # this is because we *don't* want to sum over this column
@@ -168,12 +168,12 @@ def _update_node(tree, node, debug_message=''):
         # we build a list of other parents that does *not* include
         # the target parent, but still in sorted order
         others  = parents[:i] + parents[i + 1:]
-        
+
         # we now sum over dimension 1 each time which
         # leaves the target parent dimension in tact, as required
         for other in others:
             CPTcopy = np.tensordot(tree.edge[other][node]['causal'], CPTcopy, axes=[0, 1])
-        
+
         # we now sum over the parent node dimension
         # but we sum over the 2nd dimension, since we are interested
         # in the probability over the values of the *parent*
@@ -203,7 +203,7 @@ def polytree(tree, pivot_node=None, verbose=False):
     """
     Use the message passing algorithm from Pearl 1982 to calculate
     exact posterior probabilities
-    
+
     Implementation of algorithm outlined in Poet & Schachter 1991
 
     NB all non-root nodes must have a CPT defined
@@ -221,7 +221,7 @@ def polytree(tree, pivot_node=None, verbose=False):
         if verbose:
             print('Initialising...')
         _initialise_polytree(tree)
-        
+
     ##########
     # we now use the 'observation' property to set the diagnostic evidence for all nodes
     ##########
@@ -229,7 +229,7 @@ def polytree(tree, pivot_node=None, verbose=False):
         if 'observation' in tree.node[node]:
             tree.node[node]['evidence']   = np.array(tree.node[node]['observation'])
             tree.node[node]['diagnostic'] = tree.node[node]['evidence']
-    
+
     ##########
     # find appropriate pivot node in the network
     ##########
@@ -240,7 +240,7 @@ def polytree(tree, pivot_node=None, verbose=False):
         if verbose:
             print('No new observations found...')
         return tree
-    
+
     if not pivot_node:
         if verbose:
             print('Finding pivot node...')
@@ -267,7 +267,7 @@ def polytree(tree, pivot_node=None, verbose=False):
         ordered_nodes = nx.topological_sort(tree)
         change_set = set(tree.nodes())
         change_set.remove(pivot_node)
-    
+
     ##########
     # first pass - inwards
     # we can now propagate changes through the change_set, toward the pivot node
