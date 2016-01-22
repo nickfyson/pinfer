@@ -4,13 +4,8 @@
 from copy import deepcopy
 import networkx as nx
 
+from .utils import get_inode_name, gene_is_lost
 from .evol_time import add_normalised_edge_lengths, label_birth_death
-
-
-def get_inode_name(geneA, geneB):
-    # the name of interaction nodes is a concatenation of the two gene names
-    # crucially, these are always sorted so the order in which genes are passed is irrelevant
-    return '%s_%s' % tuple(sorted((geneA, geneB)))
 
 
 def get_ordered_nodes(tree, include_leaves=True):
@@ -36,7 +31,7 @@ def get_ordered_nodes(tree, include_leaves=True):
 def get_fellow_extants(iTree, gene):
     """returns a list of all interaction partners of the specified gene"""
 
-    if _is_lost(iTree, gene):
+    if gene_is_lost(iTree, gene):
         return []
 
     time = iTree.node[gene]['t_birth']
@@ -46,7 +41,7 @@ def get_fellow_extants(iTree, gene):
     for n in iTree.nodes():
         if iTree.node[n]['node_type'] != 'gene':
             pass
-        elif _is_lost(iTree, n):
+        elif gene_is_lost(iTree, n):
             pass
         elif iTree.node[n]['t_birth'] > time:
             pass
@@ -122,15 +117,10 @@ def get_parent_interaction(iTree, interaction):
     return parent_interaction, evol_dist
 
 
-def _is_lost(iTree, gene):
-    """simple function to determine whether the gene has been lost"""
-    return 'lost' in iTree.node[gene]['name'].lower()
-
-
 def build_itree(gTree):
     """function to construct interaction tree, given suitably annotated gene tree"""
-    # we initialise as a copy of the gTree, so the new tree can be built on the existing structure
 
+    # we initialise as a copy of the gTree, so the new tree can be built on the existing structure
     iTree = deepcopy(gTree)
     iTree.graph['name'] = 'iTree'
 
