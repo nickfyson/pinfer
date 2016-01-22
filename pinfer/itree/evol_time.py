@@ -50,3 +50,19 @@ def add_normalised_edge_lengths(tree):
     return
 
 
+def label_birth_death(tree):
+    """add birth and death time properties to each node"""
+
+    root = [n for n in tree.nodes() if not tree.predecessors(n)][0]
+
+    for n, d in nx.shortest_path_length(tree, root, weight='length').items():
+        tree.node[n]['t_death'] = d + 1.0
+
+    for n in tree.nodes():
+        try:
+            tree.node[n]['t_birth'] = tree.node[tree.predecessors(n)[0]]['t_death']
+        except IndexError:
+            tree.node[n]['t_birth'] = 0.0
+
+    return
+

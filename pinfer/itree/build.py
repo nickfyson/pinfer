@@ -4,7 +4,7 @@
 from copy import deepcopy
 import networkx as nx
 
-from .normalise import add_normalised_edge_lengths
+from .evol_time import add_normalised_edge_lengths, label_birth_death
 
 
 def get_inode_name(geneA, geneB):
@@ -31,25 +31,6 @@ def get_ordered_nodes(tree, include_leaves=True):
     distances = {node: dist for (dist, node) in sorted(nodes_dists)}
 
     return ordered_nodes, distances
-
-
-def label_death_times(tree):
-    """add birth and death time properties to each node"""
-
-    add_normalised_edge_lengths(tree)
-
-    root = [n for n in tree.nodes() if not tree.predecessors(n)][0]
-
-    for n, d in nx.shortest_path_length(tree, root, weight='length').items():
-        tree.node[n]['t_death'] = d + 1.0
-
-    for n in tree.nodes():
-        try:
-            tree.node[n]['t_birth'] = tree.node[tree.predecessors(n)[0]]['t_death']
-        except IndexError:
-            tree.node[n]['t_birth'] = 0.0
-
-    return
 
 
 def get_fellow_extants(iTree, gene):
@@ -157,7 +138,9 @@ def build_itree(gTree):
     for node in iTree.nodes():
         iTree.node[node]['node_type'] = 'gene'
 
-    label_death_times(iTree)
+    add_normalised_edge_lengths(iTree)
+
+    label_birth_death(iTree)
 
     # first we build a list of nodes ordered by the distance from the root
     # ordered_nodes = get_ordered_nodes(iTree)
