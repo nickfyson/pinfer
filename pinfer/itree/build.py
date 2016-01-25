@@ -8,26 +8,6 @@ from .utils import get_inode_name, gene_is_lost
 from .evol_time import add_normalised_edge_lengths, label_birth_death
 
 
-def get_ordered_nodes(tree, include_leaves=True):
-    """return list of all nodes, ordered by distance from tree
-    optionally, also return distances as a dictionary"""
-
-    root = nx.topological_sort(tree)[0]
-
-    nodes_dists = []
-    for node in tree.nodes():
-        if tree.out_degree(node) == 0 and not include_leaves:
-            pass
-        else:
-            nodes_dists.append((nx.shortest_path_length(tree, root, node, weight='length'), node))
-
-    ordered_nodes = [node for (dist, node) in sorted(nodes_dists)]
-
-    distances = {node: dist for (dist, node) in sorted(nodes_dists)}
-
-    return ordered_nodes, distances
-
-
 def get_fellow_extants(iTree, gene):
     """returns a list of all interaction partners of the specified gene"""
 
@@ -134,11 +114,9 @@ def build_itree(gTree):
 
     label_birth_death(iTree)
 
-    # first we build a list of nodes ordered by the distance from the root
-    # ordered_nodes = get_ordered_nodes(iTree)
-
-    ordered_nodes = [(n, iTree.node[n]['t_birth']) for n in iTree.nodes()]
-    ordered_nodes = [n for n, d in sorted(ordered_nodes, key=lambda x:x[1])]
+    # first we build a list of nodes ordered by their birth time
+    nodes_t_births = [(n, iTree.node[n]['t_birth']) for n in iTree.nodes()]
+    ordered_nodes  = [n for n, d in sorted(nodes_t_births, key=lambda x:x[1])]
 
     for gene in ordered_nodes:
 
