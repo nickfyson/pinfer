@@ -16,6 +16,8 @@ def vis_tree(tree, fig=None, pos=None, node_cat_string=None, node_color_string=N
     if not pos:
         pos = nx.graphviz_layout(tree, prog=layout)
 
+    node_colors = []
+
     if node_cat_string:
 
         all_categories = set([tree.node[n][node_cat_string] for n in tree.nodes()
@@ -50,6 +52,9 @@ def vis_tree(tree, fig=None, pos=None, node_cat_string=None, node_color_string=N
     else:
         with_labels = False
         font_size   = node_size / 400.0
+
+    if node_colors:
+        node_colors = [(0.8, 0.8, 0.8) for n in tree.nodes()]
 
     nx.draw(tree, pos, arrows=False,
             with_labels=with_labels, font_size=font_size,
