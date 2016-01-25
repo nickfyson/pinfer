@@ -34,7 +34,7 @@ def load_notung_nhx(filename):
             properties[match.split('=')[0]] = match.split('=')[1]
 
         graph.add_node(new_node, **properties)
-    
+
     for source, target in tree.edges():
         new_source = node_translator[source]
         new_target = node_translator[target]

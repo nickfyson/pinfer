@@ -6,20 +6,20 @@ import seaborn as sns
 import networkx as nx
 
 
-def vis_tree(tree, fig=None, pos=None, node_cat_string=None, pallete_name='rainbow', node_size=None):
+def vis_tree(tree, fig=None, pos=None, node_cat_string=None,
+             pallete_name='rainbow', node_size=None, layout='dot'):
     """visualise the tree with colouring according to property 'node_cat_string'"""
-    
+
     if not fig:
         plt.figure(figsize=(20, 6))
-    
-    if not pos:
-        pos = nx.graphviz_layout(tree, prog='dot')
 
-    node_colors = 'b'
-    
+    if not pos:
+        pos = nx.graphviz_layout(tree, prog=layout)
+
     if node_cat_string:
 
-        all_categories = set([tree.node[n][node_cat_string] for n in tree.nodes() if tree.node[n].get(node_cat_string,None)])
+        all_categories = set([tree.node[n][node_cat_string] for n in tree.nodes()
+                              if tree.node[n].get(node_cat_string, None)])
 
         all_categories = sorted(list(all_categories))
 
@@ -29,11 +29,11 @@ def vis_tree(tree, fig=None, pos=None, node_cat_string=None, pallete_name='rainb
 
         node_colors = []
         for node in tree.nodes():
-        
-            category = tree.node[node].get(node_cat_string,'')
-            
-            node_colors.append(color_dict.get(category,(0.8, 0.8, 0.8)))
-    
+
+            category = tree.node[node].get(node_cat_string, '')
+
+            node_colors.append(color_dict.get(category, (0.8, 0.8, 0.8)))
+
     if not node_size:
         node_size = float(6e4) / len(tree.nodes())
 
