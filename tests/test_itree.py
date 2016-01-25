@@ -11,6 +11,10 @@ Tests for `itree` code.
 import unittest
 
 
+import numpy as np
+
+import networkx as nx
+
 class TestITree(unittest.TestCase):
 
     def setUp(self):
@@ -18,6 +22,15 @@ class TestITree(unittest.TestCase):
         from pinfer.io import load_notung_nhx
 
         self.gTree = load_notung_nhx('tests/data/tree.newick')
+
+        gTree = load_notung_nhx('tests/data/tree.newick')
+
+        from pinfer.itree.evol_time import add_normalised_edge_lengths, label_birth_death
+
+        add_normalised_edge_lengths(gTree)
+        label_birth_death(gTree)
+
+        self.gTree_processed = gTree
 
     def test_notung_import(self):
 
@@ -36,12 +49,7 @@ class TestITree(unittest.TestCase):
 
     def test_gtree_normalisation(self):
 
-        from pinfer.itree.evol_time import add_normalised_edge_lengths, label_birth_death
-
-        gTree = self.gTree
-
-        add_normalised_edge_lengths(gTree)
-        label_birth_death(gTree)
+        gTree = self.gTree_processed
 
         # birth time must always be earlier than death for each node...
         for s, t in gTree.edges():
@@ -52,14 +60,50 @@ class TestITree(unittest.TestCase):
             assert gTree.node[s]['t_death'] == gTree.node[t]['t_birth']
 
         # all the non-duplication nodes within a given species must be coincident
-        import numpy as np
-
         for species in set([gTree.node[n]['S'] for n in gTree.nodes()]):
             t_deaths = [np.round(gTree.node[n]['t_death'], 10) for n in gTree.nodes() if (
                         gTree.node[n]['S'] == species and
                         gTree.node[n]['D'] == 'N'
                         )]
         assert len(set(t_deaths)) == 1, 'Not all %s speciations are coincident.' % species
+
+    def test_gtree_branch_lengths(self):
+
+        gTree = self.gTree_processed
+
+        species = {gTree.node[n]['S'] for n in gTree.nodes()}
+
+        trees = {}
+        for S in species:
+
+            nodes = [n for n in gTree.nodes() if gTree.node[n]['S']==S]
+
+            parents = []
+            for node in nodes:
+                parent = gTree.predecessors(node)
+                if parent:
+                    parents.append(parent[0])
+
+            tree = nx.subgraph(gTree,nodes+parents)
+
+            trees[S] = tree
+
+        for S,tree in trees.items():
+
+            roots  = [n for n in tree.nodes() if not tree.predecessors(n)]
+            leaves = [n for n in tree.nodes() if not tree.successors(n)]
+
+            for root in roots:
+                for leaf in leaves:
+
+                    for path in nx.all_simple_paths(tree, root, leaf):
+
+                        lengths = [tree.edge[path[i]][path[i+1]]['length'] for i in range(len(path)-1)]
+
+                        total_length = np.round(sum(lengths),10)
+
+                        assert total_length == 1.0, 'path from %s to %s not of unit length' % (root, leaf)
+
 
     def tearDown(self):
         pass
