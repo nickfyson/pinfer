@@ -25,9 +25,8 @@ class TestITree(unittest.TestCase):
 
         gTree = load_notung_nhx('tests/data/tree.newick')
 
-        from pinfer.itree.evol_time import add_normalised_edge_lengths, label_birth_death
+        from pinfer.itree.evol_time import label_birth_death
 
-        add_normalised_edge_lengths(gTree)
         label_birth_death(gTree)
 
         self.gTree_processed = gTree

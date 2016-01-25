@@ -2,7 +2,7 @@
 import networkx as nx
 
 
-def add_normalised_edge_lengths(tree):
+def _add_normalised_edge_lengths(tree):
     """annotate all edges such that total depth of tree is normalised to one within each species"""
 
     def relabel_weights(tree, effective_root, remaining_length=1.0):
@@ -52,6 +52,8 @@ def add_normalised_edge_lengths(tree):
 
 def label_birth_death(tree):
     """add birth and death time properties to each node"""
+
+    _add_normalised_edge_lengths(tree)
 
     root = [n for n in tree.nodes() if not tree.predecessors(n)][0]
 

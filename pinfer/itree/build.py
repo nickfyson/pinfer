@@ -5,7 +5,7 @@ from copy import deepcopy
 import networkx as nx
 
 from .utils import get_inode_name, gene_is_lost
-from .evol_time import add_normalised_edge_lengths, label_birth_death
+from .evol_time import label_birth_death
 
 
 def get_fellow_extants(iTree, gene):
@@ -109,8 +109,6 @@ def build_itree(gTree):
     # all existing nodes are annotated as genes
     for node in iTree.nodes():
         iTree.node[node]['node_type'] = 'gene'
-
-    add_normalised_edge_lengths(iTree)
 
     label_birth_death(iTree)
 
