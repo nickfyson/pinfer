@@ -14,7 +14,8 @@ def load_notung_nhx(filename):
     returns networkx graph object
     strips information from the comment field and converts into node properties"""
 
-    tree = read(open(filename, 'r'), format='newick')
+    with open(filename, 'r') as f:
+        tree = read(f, format='newick')
 
     tree.rooted = True
 
