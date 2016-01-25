@@ -6,12 +6,12 @@ import seaborn as sns
 import networkx as nx
 
 
-def vis_tree(tree, fig=None, pos=None, node_cat_string=None,
+def vis_tree(tree, fig=None, pos=None, node_cat_string=None, node_color_string=None,
              pallete_name='rainbow', node_size=None, layout='dot'):
     """visualise the tree with colouring according to property 'node_cat_string'"""
 
     if not fig:
-        plt.figure(figsize=(20, 6))
+        plt.figure(figsize=(24, 8))
 
     if not pos:
         pos = nx.graphviz_layout(tree, prog=layout)
@@ -34,6 +34,13 @@ def vis_tree(tree, fig=None, pos=None, node_cat_string=None,
 
             node_colors.append(color_dict.get(category, (0.8, 0.8, 0.8)))
 
+    if node_color_string:
+
+        node_colors = []
+
+        for n in tree.nodes():
+            node_colors.append(tree.node[n].get(node_color_string, (0.8, 0.8, 0.8)))
+
     if not node_size:
         node_size = float(6e4) / len(tree.nodes())
 
@@ -47,5 +54,5 @@ def vis_tree(tree, fig=None, pos=None, node_cat_string=None,
     nx.draw(tree, pos, arrows=False,
             with_labels=with_labels, font_size=font_size,
             node_color=node_colors,
-            alpha=0.8,
-            linewidths=0.0, node_size=node_size)
+            alpha=1.0,
+            linewidths=0.5, node_size=node_size)
