@@ -7,7 +7,7 @@ import networkx as nx
 
 
 def vis_tree(tree, fig=None, pos=None, node_cat_string=None, node_color_string=None,
-             pallete_name='rainbow', node_size=None, layout='dot'):
+             node_size=None, layout='dot'):
     """visualise the tree with colouring according to property 'node_cat_string'"""
 
     if not fig:
@@ -25,7 +25,8 @@ def vis_tree(tree, fig=None, pos=None, node_cat_string=None, node_color_string=N
 
         all_categories = sorted(list(all_categories))
 
-        pallette = sns.color_palette(pallete_name, len(all_categories))
+        pallette = sns.cubehelix_palette(n_colors=len(all_categories), start=1.1,
+                                         dark=0.4, light=0.8, rot=2.5, hue=0.9, gamma=1.0)
 
         color_dict = {cat: pallette[i] for i, cat in enumerate(all_categories)}
 
@@ -53,7 +54,7 @@ def vis_tree(tree, fig=None, pos=None, node_cat_string=None, node_color_string=N
         with_labels = False
         font_size   = node_size / 400.0
 
-    if node_colors:
+    if not node_colors:
         node_colors = [(0.8, 0.8, 0.8) for n in tree.nodes()]
 
     nx.draw(tree, pos, arrows=False,
