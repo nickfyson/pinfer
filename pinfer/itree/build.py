@@ -110,8 +110,10 @@ def get_parent_interaction(iTree, interaction):
             ancestorB = iTree.predecessors(ancestorB)[0]
 
     # we can also return the edge length here...
-    evolution_of_A = nx.shortest_path_length(iTree, source=ancestorA, target=geneA, weight='weight')
-    evolution_of_B = nx.shortest_path_length(iTree, source=ancestorB, target=geneB, weight='weight')
+    evolution_of_A = nx.shortest_path_length(iTree, source=ancestorA,
+                                             target=geneA, weight='distance')
+    evolution_of_B = nx.shortest_path_length(iTree, source=ancestorB,
+                                             target=geneB, weight='distance')
     evol_dist    = evolution_of_A + evolution_of_B
 
     return parent_interaction, evol_dist

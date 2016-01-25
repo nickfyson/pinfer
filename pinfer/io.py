@@ -40,4 +40,7 @@ def load_notung_nhx(filename):
         new_target = node_translator[target]
         graph.add_edge(new_source, new_target, **tree.edge[source][target])
 
+    for s, t in graph.edges():
+        graph.edge[s][t]['distance'] = graph.edge[s][t].pop('weight')
+
     return graph

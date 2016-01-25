@@ -9,13 +9,13 @@ def add_normalised_edge_lengths(tree):
 
         for child in tree.edge[effective_root]:
 
-            max_dist = tree.edge[effective_root][child]['weight'] + \
+            max_dist = tree.edge[effective_root][child]['distance'] + \
                 max([
                     d for n, d in
-                    nx.shortest_path_length(tree, source=child, weight='weight').items()
+                    nx.shortest_path_length(tree, source=child, weight='distance').items()
                 ])
 
-            original_length = tree.edge[effective_root][child]['weight']
+            original_length = tree.edge[effective_root][child]['distance']
 
             new_length      = remaining_length * (original_length / max_dist)
 
@@ -65,4 +65,3 @@ def label_birth_death(tree):
             tree.node[n]['t_birth'] = 0.0
 
     return
-
