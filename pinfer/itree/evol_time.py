@@ -2,68 +2,90 @@
 import networkx as nx
 
 
-def _add_normalised_edge_lengths(tree):
-    """annotate all edges such that total depth of tree is normalised to one within each species"""
+def _label_starter_nodes(tree):
 
-    def relabel_weights(tree, effective_root, remaining_length=1.0):
+    # we construct a list of all non-leaf species, in tree order
+    non_leaf_species = []
+    for node in [n for n in nx.topological_sort(tree) if tree.successors(n)]:
+        # we are only interested in the speciation nodes (ie. *not* duplication)
+        if tree.node[node]['D'] == 'N':
+            # need to make sure the list is unique
+            if tree.node[node]['S'] not in non_leaf_species:
+                non_leaf_species.append(tree.node[node]['S'])
 
-        for child in tree.edge[effective_root]:
+    # the speciations are defined to happen at integer times
+    species2time = {species: i + 1.0 for i, species in enumerate(non_leaf_species)}
 
-            max_dist = tree.edge[effective_root][child]['distance'] + \
-                max([
-                    d for n, d in
-                    nx.shortest_path_length(tree, source=child, weight='distance').items()
-                ])
+    # all the leaves are fixed to be at the next availble integer time
+    leaf_time = len(species2time) + 1.0
 
-            original_length = tree.edge[effective_root][child]['distance']
+    # every non-duplication node is initialised with a t_death property
+    # this includes the leaves
+    for node in [n for n in tree.nodes() if tree.node[n]['D'] == 'N']:
+        tree.node[node]['t_death'] = species2time.get(tree.node[node]['S'], leaf_time)
 
-            new_length      = remaining_length * (original_length / max_dist)
+    # finally, the root is defined to have a t_death of zero
+    tree.node[nx.topological_sort(tree)[0]]['t_death'] = 0.0
 
-            # label outgoing edges with the appropriate fraction of the remaining length
-            tree.edge[effective_root][child]['length'] = new_length
 
-            # call relabel_weights with each child as effective root, and correct remaining length
-            relabel_weights(tree, child, remaining_length=(remaining_length - new_length))
+def _determine_t_death(tree, target):
 
-        return
+    # find the time of parent and the distance from it
+    parent = tree.predecessors(target)[0]
 
-    all_species = set([tree.node[n]['S'] for n in tree.nodes()])
+    start_dist = tree.edge[parent][target]['distance']
+    start_time = tree.node[parent]['t_death']
 
-    for i, species in enumerate(all_species):
+    # build list of descendants within the same species
+    descendants = [n for n in nx.descendants(tree, target)
+                   if tree.node[n]['S'] == tree.node[target]['S']]
 
-        nodes = [n for n in tree.nodes() if tree.node[n]['S'] == species]
+    # find the most distant descendant with 't_death' label
+    distances_times = []
+    times     = []
+    for node in descendants:
+        distance_time = (
+                         nx.shortest_path_length(tree, source=target, target=node, weight='distance'),
+                         tree.node[node].get('t_death', None)
+                        )
+        distances_times.append(distance_time)
 
-        # add parents to the set of nodes
-        parents = set()
-        for node in nodes:
-            if tree.predecessors(node):
-                parents.add(tree.predecessors(node)[0])
+    # max_dist = max(distances)
 
-        subTree = nx.subgraph(tree, nodes + list(parents))
+    distances_times.sort()
 
-        for root in [n for n in subTree.nodes() if not subTree.predecessors(n)]:
-            relabel_weights(subTree, root)
+    end_dist, end_time = distances_times[-1]
 
-        for s, t in subTree.edges():
-            tree.edge[s][t]['length'] = subTree.edge[s][t]['length']
+    # t_death for node is between that of parent and descendant
+    # proportionate to the distance to each
+    t_death = start_time + (end_time - start_time) * (start_dist / (start_dist + end_dist))
 
-    return
+    tree.node[target]['t_death'] = t_death
+
+
+def _add_t_births_and_lengths(tree):
+
+    for s, t in tree.edges():
+
+        tree.node[t]['t_birth'] = tree.node[s]['t_death']
+
+        tree.edge[s][t]['length'] = tree.node[t]['t_death'] - tree.node[t]['t_birth']
+
+    # finally, the root is defined to have a birth time of -1.0
+    tree.node[nx.topological_sort(tree)[0]]['t_birth'] = -1.0
 
 
 def label_birth_death(tree):
     """add birth and death time properties to each node"""
 
-    _add_normalised_edge_lengths(tree)
+    # all the speciciation nodes have pre-defined times
+    _label_starter_nodes(tree)
 
-    root = [n for n in tree.nodes() if not tree.predecessors(n)][0]
+    # now we need to label all remaining nodes
+    # best achieved in topological order
+    for node in [n for n in nx.topological_sort(tree) if 't_death' not in tree.node[n]]:
+        _determine_t_death(tree, node)
 
-    for n, d in nx.shortest_path_length(tree, root, weight='length').items():
-        tree.node[n]['t_death'] = d + 1.0
-
-    for n in tree.nodes():
-        try:
-            tree.node[n]['t_birth'] = tree.node[tree.predecessors(n)[0]]['t_death']
-        except IndexError:
-            tree.node[n]['t_birth'] = 0.0
+    _add_t_births_and_lengths(tree)
 
     return

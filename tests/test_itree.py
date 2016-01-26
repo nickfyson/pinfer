@@ -66,6 +66,7 @@ class TestITree(unittest.TestCase):
                         )]
         assert len(set(t_deaths)) == 1, 'Not all %s speciations are coincident.' % species
 
+    # the paths from (effective) root to leaf within species must be of unit length
     def test_gtree_branch_lengths(self):
 
         gTree = self.gTree_processed
@@ -99,9 +100,10 @@ class TestITree(unittest.TestCase):
 
                         lengths = [tree.edge[path[i]][path[i+1]]['length'] for i in range(len(path)-1)]
 
-                        total_length = np.round(sum(lengths),10)
+                        residual_length = np.round(sum(lengths),10) - np.round(sum(lengths),0)
 
-                        assert total_length == 1.0, 'path from %s to %s not of unit length' % (root, leaf)
+                        assert residual_length == 0.0, 'path from %s to %s not of unit length' % \
+                                                    (gTree.node[root]['name'], gTree.node[leaf]['name'])
 
 
     def tearDown(self):
