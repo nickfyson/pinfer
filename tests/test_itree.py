@@ -15,6 +15,7 @@ import numpy as np
 
 import networkx as nx
 
+
 class TestITree(unittest.TestCase):
 
     def setUp(self):
@@ -76,7 +77,7 @@ class TestITree(unittest.TestCase):
         trees = {}
         for S in species:
 
-            nodes = [n for n in gTree.nodes() if gTree.node[n]['S']==S]
+            nodes = [n for n in gTree.nodes() if gTree.node[n]['S'] == S]
 
             parents = []
             for node in nodes:
@@ -84,11 +85,11 @@ class TestITree(unittest.TestCase):
                 if parent:
                     parents.append(parent[0])
 
-            tree = nx.subgraph(gTree,nodes+parents)
+            tree = nx.subgraph(gTree, nodes + parents)
 
             trees[S] = tree
 
-        for S,tree in trees.items():
+        for S, tree in trees.items():
 
             roots  = [n for n in tree.nodes() if not tree.predecessors(n)]
             leaves = [n for n in tree.nodes() if not tree.successors(n)]
@@ -98,13 +99,13 @@ class TestITree(unittest.TestCase):
 
                     for path in nx.all_simple_paths(tree, root, leaf):
 
-                        lengths = [tree.edge[path[i]][path[i+1]]['length'] for i in range(len(path)-1)]
+                        lengths = [tree.edge[path[i]][path[i + 1]]['length']
+                                   for i in range(len(path) - 1)]
 
-                        residual_length = np.round(sum(lengths),10) - np.round(sum(lengths),0)
+                        residual_length = np.round(sum(lengths), 10) - np.round(sum(lengths), 0)
 
                         assert residual_length == 0.0, 'path from %s to %s not of unit length' % \
-                                                    (gTree.node[root]['name'], gTree.node[leaf]['name'])
-
+                            (gTree.node[root]['name'], gTree.node[leaf]['name'])
 
     def tearDown(self):
         pass
