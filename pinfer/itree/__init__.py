@@ -1,3 +1,17 @@
 # -*- coding: utf-8 -*-
 
-from .build import build_itree  # NOQA
+from .initialise import initialise_iTree
+from .label import label_birth_death
+from .interact import add_all_inodes
+
+
+def build_itree(gTree):
+    """function to construct interaction tree, given suitably annotated gene tree"""
+
+    iTree = initialise_iTree(gTree)
+
+    label_birth_death(iTree)
+
+    add_all_inodes(iTree)
+
+    return iTree
