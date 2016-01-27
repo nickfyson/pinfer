@@ -15,6 +15,11 @@ import numpy as np
 
 import networkx as nx
 
+import os
+from os.path import sep
+
+tests_folder = os.path.realpath(__file__).split(sep)[:-1]
+
 
 class TestITree(unittest.TestCase):
 
@@ -22,9 +27,9 @@ class TestITree(unittest.TestCase):
 
         from pinfer.io import load_notung_nhx
 
-        self.gTree = load_notung_nhx('tests/data/tree.newick')
+        self.gTree = load_notung_nhx(sep.join(tests_folder + ['data', 'tree.newick']))
 
-        gTree = load_notung_nhx('tests/data/tree.newick')
+        gTree = load_notung_nhx(sep.join(tests_folder + ['data', 'tree.newick']))
 
         from pinfer.itree.evol_time import label_birth_death
 
@@ -106,6 +111,11 @@ class TestITree(unittest.TestCase):
 
                         assert residual_length == 0.0, 'path from %s to %s not of unit length' % \
                             (gTree.node[root]['name'], gTree.node[leaf]['name'])
+
+    def test_basic_iTree_run(self):
+        from pinfer import build_itree
+
+        build_itree(self.gTree)
 
     def tearDown(self):
         pass
