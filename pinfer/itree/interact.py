@@ -1,152 +1,193 @@
 # -*- coding: utf-8 -*-
 """module docstring here"""
 
-from copy import deepcopy
 import networkx as nx
+from networkx.exception import NetworkXNoPath
 
-from .utils import get_inode_name, gene_is_lost
+from .utils import get_inode_name
+from .utils import gene_is_lost
 
-def get_fellow_extants(iTree, gene):
-    """returns a list of all interaction partners of the specified gene"""
 
-    if gene_is_lost(iTree, gene):
-        return []
+def make_new_inode(tree, geneA, geneB):
 
-    time = iTree.node[gene]['t_birth']
+    inode = get_inode_name(geneA, geneB)
 
-    extants = []
+    inode_name = get_inode_name(tree.node[geneA]['name'], tree.node[geneB]['name'])
 
-    for n in iTree.nodes():
-        if iTree.node[n]['node_type'] != 'gene':
-            pass
-        elif gene_is_lost(iTree, n):
-            pass
-        elif iTree.node[n]['t_birth'] > time:
-            pass
-        elif iTree.node[n]['t_death'] <= time:
-            pass
-        elif iTree.node[n]['S'] != iTree.node[gene]['S']:
-            pass
+    if inode in tree.nodes():
+        raise Exception("Uh oh, this shouldn't be here!")
+    tree.add_node(inode, name=inode_name, node_type='interaction', S=tree.node[geneA]['S'])
+
+    return inode
+
+
+def add_inode_parent(tree, inode):
+
+    def walk_back_gene_pair(tree, geneA, geneB):
+
+        parentsA = tree.predecessors(geneA)
+        parentsB = tree.predecessors(geneB)
+
+        # we check for bugs with some (theoretically) impossible cases
+        if len(parentsA) == 0 and len(parentsB) == 0:
+            print(nx.topological_sort(tree)[0])
+            print(geneA, geneB)
+            raise Exception("Neither has a parent?! This shouldn't be possible!")
+        elif len(parentsA)  > 1 or len(parentsB) > 1:
+            raise Exception("this shouldn't be possible!")
+
+        # if either gene has no parents, we *must* walk back the other one
+        if len(parentsA) == 0:
+            return geneA, parentsB[0]
+        if len(parentsB) == 0:
+            return parentsA[0], geneB
+
+        # we now know we have exactly one parent for each gene
+        parentA = parentsA[0]
+        parentB = parentsB[0]
+
+        # if both genes have a parent, we must select the one most recently born
+        # in the case of a tie, its abitrary which we choose
+        if tree.node[parentA]['t_birth'] > tree.node[parentB]['t_birth']:
+            return parentA, geneB
         else:
-            extants.append(n)
+            return geneA, parentB
 
-    return extants
+    def get_single_common_inode(tree, geneA, geneB):
 
+        # we know that if geneA and geneB are the same, we must return the self interaction
+        if geneA == geneB:
+            return get_inode_name(geneA, geneB)
 
-def get_parent_interaction(iTree, interaction):
-    """return the appropriate parent for the given interaction"""
+        # now we can check to see if the two genes have a child interaction in common
+        childrenA = {n for n in tree.successors(geneA)
+                     if tree.node[n]['node_type'] == 'interaction'}
+        childrenB = {n for n in tree.successors(geneB)
+                     if tree.node[n]['node_type'] == 'interaction'}
 
-    # the parent gene(s) are attached as predecessors in the graph
+        common_children = childrenA.intersection(childrenB)
 
-    predecessors = iTree.predecessors(interaction)
+        if len(common_children) > 1:
+            # this is a sanity check, and ought to be impossible
+            print(common_children)
+            raise Exception('Uh oh, you should NOT be able to have more ' +
+                            'than one joint child interaction!')
 
-    geneA = predecessors[0]
-    try:
-        geneB = predecessors[1]
-    except IndexError:  # if there isn't a 2nd predecessor, we know it's a self interaction
-        geneB = predecessors[0]
+        # if we don't find a common child interaction, we return false
+        if len(common_children) == 0:
+            return False
+        # finally, if there's exactly one common child interaction, we return it
+        return common_children.pop()
 
-    try:
-        if iTree.node[geneA]['t_birth'] > iTree.node[geneB]['t_birth']:
-            ancestorA = iTree.predecessors(geneA)[0]
-            ancestorB = geneB
-        else:
-            ancestorA = geneA
-            ancestorB = iTree.predecessors(geneB)[0]
-    except IndexError:
-        # if there are no ancestors, then we're looking at the ancenstral interaction
-        return None, None
+    genes = [n for n in tree.predecessors(inode) if tree.node[n]['node_type'] == 'gene']
 
+    # the two parents may be the same if there is only a single predecessor
+    geneA = genes[0]
+    geneB = genes[-1]
+
+    # if the genes are both the ancestral root gene, then there is no parent to find
+    if geneA == geneB == nx.topological_sort(tree)[0]:
+        return
+
+    # we continue an iterative search until the parent interaction is found
     while True:
 
-        # if we have found the same ancestor for both, we know that
-        # the parent interaction must be the self-interaction
-        if ancestorA == ancestorB:
-            parent_interaction = get_inode_name(ancestorA, ancestorB)
+        geneA, geneB = walk_back_gene_pair(tree, geneA, geneB)
+
+        parent_interaction = get_single_common_inode(tree, geneA, geneB)
+
+        if parent_interaction:
             break
 
-        # find the common interaction child of these two parent nodes
-        childrenA = set([n for n in iTree.successors(ancestorA)
-                         if iTree.node[n]['node_type'] == 'interaction'])
-        childrenB = set([n for n in iTree.successors(ancestorB)
-                         if iTree.node[n]['node_type'] == 'interaction'])
-
-        # as a sanity check, it should be impossible to have *more* than 1 common child
-        if len(childrenA.intersection(childrenB)) > 1:
-            raise Exception('Uh oh! Too many children in common!')
-        # if there is a common node, we have a winner!
-        if childrenA.intersection(childrenB):
-            parent_interaction = childrenA.intersection(childrenB).pop()
-            break
-
-        # if not, we replace the most recently deceased ancestor node with *its* ancestor gene
-        if iTree.node[ancestorA]['t_birth'] > iTree.node[ancestorB]['t_birth']:
-            ancestorA = iTree.predecessors(ancestorA)[0]
-            ancestorB = ancestorB
-        else:
-            ancestorA = ancestorA
-            ancestorB = iTree.predecessors(ancestorB)[0]
-
-    # we can also return the edge length here...
-    evolution_of_A = nx.shortest_path_length(iTree, source=ancestorA,
-                                             target=geneA, weight='distance')
-    evolution_of_B = nx.shortest_path_length(iTree, source=ancestorB,
-                                             target=geneB, weight='distance')
-    evol_dist    = evolution_of_A + evolution_of_B
-
-    return parent_interaction, evol_dist
+    tree.add_edge(parent_interaction, inode, edge_type='interaction')
 
 
-def add_all_inodes(iTree):
+def add_inode_distance(tree, iparent, inode):
+
+    genes = [n for n in tree.predecessors(inode) if tree.node[n]['node_type'] == 'gene']
+
+    # the two genes may be the same if this is a self interaction
+    geneA = genes[0]
+    geneB = genes[-1]
+
+    parents = [n for n in tree.predecessors(iparent) if tree.node[n]['node_type'] == 'gene']
+
+    # the two parents may be the same if this is a self interaction
+    parentA = parents[0]
+    parentB = parents[-1]
+
+    if geneA == geneB:
+        # there is only one path between them and parentA must also equal parentB
+        assert parentA == parentB
+
+        tree.edge[iparent][inode]['evol_dist'] = \
+            nx.shortest_path_length(tree, parentA, geneA, weight='distance')
+        return
+
+    # if inode is not a self interaction, there must be two route total between
+    # all (unique) parents and all genes
+    path_lengths = []
+    for parent in set([parentA, parentB]):
+        for gene in [geneA, geneB]:
+            try:
+                path_lengths.append(nx.shortest_path_length(tree, parent, gene, weight='distance'))
+            except NetworkXNoPath:
+                pass
+
+    if len(path_lengths) != 2:
+        print(path_lengths)
+        raise Exception("there aren't exactly two paths!!")
+
+    # tree.edge[iparent][inode]['evol_dist'] = path_lengths
+    tree.edge[iparent][inode]['evol_dist'] = sum(path_lengths)
+
+
+def add_all_inodes(tree):
     """function to construct interaction tree, given suitably annotated gene tree"""
 
-    # first we build a list of nodes ordered by their birth time
-    nodes_t_births = [(n, iTree.node[n]['t_birth']) for n in iTree.nodes()]
-    ordered_nodes  = [n for n, d in sorted(nodes_t_births, key=lambda x:x[1])]
+    from itertools import combinations_with_replacement
 
-    for gene in ordered_nodes:
+    for (geneA, geneB) in combinations_with_replacement(tree.nodes(), 2):
 
-        for fellow in get_fellow_extants(iTree, gene):
+        # the genes must be from the same species in order to interact
+        if tree.node[geneA]['S'] != tree.node[geneB]['S']:
+            continue
 
-            # if doesn't already exist, add an interaction between node and gene
-            if get_inode_name(gene, fellow) not in iTree.nodes():
+        # if geneA died before or at same time as geneB born, no interaction
+        if tree.node[geneA]['t_death'] <= tree.node[geneB]['t_birth']:
+            continue
 
-                new_interaction = get_inode_name(gene, fellow)
-                new_int_name    = get_inode_name(iTree.node[gene]['name'],
-                                                 iTree.node[fellow]['name'])
-                iTree.add_node(new_interaction,
-                               node_type='interaction',
-                               S=iTree.node[gene]['S'],
-                               name=new_int_name
-                               )
+        # if geneB died before or at same time as geneA born, no interaction
+        if tree.node[geneB]['t_death'] <= tree.node[geneA]['t_birth']:
+            continue
 
-                iTree.add_edge(gene, new_interaction)
-                iTree.add_edge(fellow, new_interaction)
+        # if either gene is lost, no interaction
+        if gene_is_lost(tree, geneA) or gene_is_lost(tree, geneB):
+            continue
 
-                parent_interaction, evol_dist = get_parent_interaction(iTree, new_interaction)
+        inode = make_new_inode(tree, geneA, geneB)
 
-                if parent_interaction:
-                    iTree.add_edge(parent_interaction, new_interaction, evol_dist=evol_dist)
+        # this new node hangs from the parent genes
+        tree.add_edge(geneA, inode, distance=0.0)
+        tree.add_edge(geneB, inode, distance=0.0)
 
-    # we can use the remaining gene nodes to mark all the extant interactions
-    # we first list all the extant gene nodes in the present time - ie. no children
-    extant_gnodes = set([n for n in iTree.nodes() if not iTree.successors(n)])
+    # now each inode must be connected to its parent interaction
+    for inode in [n for n in tree.nodes() if tree.node[n]['node_type'] == 'interaction']:
 
-    for inode in [n for n in iTree.nodes() if iTree.node[n]['node_type'] == 'interaction']:
+        add_inode_parent(tree, inode)
 
-        parent_genes = [n for n in iTree.predecessors(inode)
-                        if iTree.node[n]['node_type'] == 'gene']
-        # if the parent gene(s) is / are both extant, then so is the interaction
-        if set(parent_genes).issubset(extant_gnodes):
-            iTree.node[inode]['extant'] = True
+    for s, t in [(s, t) for s, t in tree.edges()
+                 if tree.edge[s][t].get('edge_type', '') == 'interaction']:
+
+        add_inode_distance(tree, s, t)
 
     # we don't want the gTree nodes actually remaining as part of the iTree
-    iTree.remove_nodes_from([n for n in iTree.nodes() if iTree.node[n]['node_type'] == 'gene'])
+    tree.remove_nodes_from([n for n in tree.nodes() if tree.node[n]['node_type'] == 'gene'])
 
     # instead of inscrutable numbers as the nodes,
     # we relabel using the 'name' property
-    nx.relabel_nodes(iTree,
-                     {n: iTree.node[n]['name'] for n in iTree.nodes()},
+    nx.relabel_nodes(tree,
+                     {n: tree.node[n]['name'] for n in tree.nodes()},
                      copy=False)
 
-    return iTree
+    return tree
