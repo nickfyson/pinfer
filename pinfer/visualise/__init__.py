@@ -59,6 +59,9 @@ def vis_tree(tree, fig=None, pos=None, node_cat_string=None, node_color_string=N
 
     nx.draw(tree, pos, arrows=False,
             with_labels=with_labels, font_size=font_size,
+            edge_color=[tree.edge[s][t].get('color', '#000000') for s, t in tree.edges()],
+            width=[tree.edge[s][t].get('width', 1.0) for s, t in tree.edges()],
             node_color=node_colors,
-            alpha=1.0,
-            linewidths=0.5, node_size=node_size)
+            linewidths=0.0,
+            alpha=0.8,
+            node_size=node_size)
