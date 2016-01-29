@@ -31,7 +31,7 @@ class TestITree(unittest.TestCase):
 
         gTree = load_notung_nhx(sep.join(tests_folder + ['data', 'tree.newick']))
 
-        from pinfer.itree.evol_time import label_birth_death
+        from pinfer.itree.label import label_birth_death
 
         label_birth_death(gTree)
 

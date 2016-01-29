@@ -5,8 +5,6 @@ from copy import deepcopy
 import networkx as nx
 
 from .utils import get_inode_name, gene_is_lost
-from .evol_time import label_birth_death
-
 
 def get_fellow_extants(iTree, gene):
     """returns a list of all interaction partners of the specified gene"""
@@ -99,18 +97,8 @@ def get_parent_interaction(iTree, interaction):
     return parent_interaction, evol_dist
 
 
-def build_itree(gTree):
+def add_all_inodes(iTree):
     """function to construct interaction tree, given suitably annotated gene tree"""
-
-    # we initialise as a copy of the gTree, so the new tree can be built on the existing structure
-    iTree = deepcopy(gTree)
-    iTree.graph['name'] = 'iTree'
-
-    # all existing nodes are annotated as genes
-    for node in iTree.nodes():
-        iTree.node[node]['node_type'] = 'gene'
-
-    label_birth_death(iTree)
 
     # first we build a list of nodes ordered by their birth time
     nodes_t_births = [(n, iTree.node[n]['t_birth']) for n in iTree.nodes()]
@@ -124,8 +112,8 @@ def build_itree(gTree):
             if get_inode_name(gene, fellow) not in iTree.nodes():
 
                 new_interaction = get_inode_name(gene, fellow)
-                new_int_name    = get_inode_name(gTree.node[gene]['name'],
-                                                 gTree.node[fellow]['name'])
+                new_int_name    = get_inode_name(iTree.node[gene]['name'],
+                                                 iTree.node[fellow]['name'])
                 iTree.add_node(new_interaction,
                                node_type='interaction',
                                S=iTree.node[gene]['S'],
@@ -140,9 +128,9 @@ def build_itree(gTree):
                 if parent_interaction:
                     iTree.add_edge(parent_interaction, new_interaction, evol_dist=evol_dist)
 
-    # we can use the remaining gTree nodes to mark all the extant interactions
+    # we can use the remaining gene nodes to mark all the extant interactions
     # we first list all the extant gene nodes in the present time - ie. no children
-    extant_gnodes = set([n for n in gTree.nodes() if not gTree.successors(n)])
+    extant_gnodes = set([n for n in iTree.nodes() if not iTree.successors(n)])
 
     for inode in [n for n in iTree.nodes() if iTree.node[n]['node_type'] == 'interaction']:
 
