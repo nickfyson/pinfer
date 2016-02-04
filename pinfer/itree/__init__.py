@@ -4,6 +4,8 @@ from .initialise import initialise_iTree
 from .label import label_birth_death
 from .interact import add_all_inodes
 
+from .annotate import annotate_observations  # NOQA
+
 
 def build_itree(gTree):
     """function to construct interaction tree, given suitably annotated gene tree"""
