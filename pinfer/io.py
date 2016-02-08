@@ -3,7 +3,7 @@
 
 import re
 
-from networkx import DiGraph
+import networkx as nx
 
 from Bio.Phylo import read, to_networkx
 
@@ -25,7 +25,7 @@ def load_notung_nhx(filename):
     for node in tree.nodes():
         node_translator[node] = str(len(node_translator))
 
-    graph = DiGraph()
+    graph = nx.DiGraph()
 
     for node in tree.nodes():
         new_node = node_translator[node]
@@ -43,5 +43,18 @@ def load_notung_nhx(filename):
 
     for s, t in graph.edges():
         graph.edge[s][t]['distance'] = graph.edge[s][t].pop('weight')
+
+    # follow convention by renaming the root node to 'X0'
+    root                     = nx.topological_sort(graph)[0]
+    graph.node[root]['name'] = 'X0'
+
+    # rename lost genes, so all nodes have unique names
+    for n in [n for n in graph.nodes() if 'lost' in graph.node[n]['name'].lower()]:
+        graph.node[n]['name'] = n + graph.node[n]['name']
+
+    # build dictionary to replace node objects with the name of each node
+    new_node_names = {n: graph.node[n]['name'] for n in graph.nodes()}
+
+    nx.relabel_nodes(graph, new_node_names, copy=False)
 
     return graph
