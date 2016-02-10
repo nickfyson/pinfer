@@ -147,6 +147,8 @@ def add_all_inodes(tree):
 
     from itertools import combinations_with_replacement
 
+    # for an initial implementation, we go for the most conceptually simple approach
+    # efficiency be damned!
     for (geneA, geneB) in combinations_with_replacement(tree.nodes(), 2):
 
         # the genes must be from the same species in order to interact
