@@ -27,7 +27,7 @@ class TestPolytree(unittest.TestCase):
         CPT_W[0, :] = np.array([0.8, 0.2])
         CPT_W[1, :] = np.array([0.0, 1.0])
 
-        tree.add_node('W', CPT=CPT_W, diagnostic=np.array([1, 1]))
+        tree.add_node('W', CPT=CPT_W)
 
         CPT_H = np.zeros((2, 2, 2))
         CPT_H[0, 0, :] = np.array([1.0, 0.0])
@@ -35,7 +35,7 @@ class TestPolytree(unittest.TestCase):
         CPT_H[1, 0, :] = np.array([0.0, 1.0])
         CPT_H[1, 1, :] = np.array([0.0, 1.0])
 
-        tree.add_node('H', CPT=CPT_H, diagnostic=np.array([1, 1]))
+        tree.add_node('H', CPT=CPT_H)
 
         tree.add_edge('R', 'W')
         tree.add_edge('R', 'H')
