@@ -8,5 +8,5 @@ def gene_is_lost(iTree, gene):
 def get_inode_name(geneA, geneB):
     # the name of interaction nodes is a concatenation of the two gene names
     # crucially, these are always sorted so the order in which genes are passed is irrelevant
-    return '%s_%s' % tuple(sorted((geneA, geneB)))
+    return '%s-%s' % tuple(sorted((geneA, geneB)))
 
