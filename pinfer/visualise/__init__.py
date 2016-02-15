@@ -6,19 +6,20 @@ import seaborn as sns
 import networkx as nx
 
 
-def vis_tree(tree, fig=None, pos=None, node_cat_string=None, node_color_string=None,
-             node_size=None, layout='dot'):
+def vis_tree(tree, fig=None, node_cat_string=None,
+             node_size=None, layout='dot', alpha=0.8):
     """visualise the tree with colouring according to property 'node_cat_string'"""
 
     if not fig:
         plt.figure(figsize=(24, 8))
 
+    pos = tree.graph.get('pos', None)
     if not pos:
         pos = nx.graphviz_layout(tree, prog=layout)
 
-    node_colors = []
-
     if node_cat_string:
+
+        node_colors = []
 
         all_categories = set([tree.node[n][node_cat_string] for n in tree.nodes()
                               if tree.node[n].get(node_cat_string, None)])
@@ -36,32 +37,31 @@ def vis_tree(tree, fig=None, pos=None, node_cat_string=None, node_color_string=N
             category = tree.node[node].get(node_cat_string, '')
 
             node_colors.append(color_dict.get(category, (0.8, 0.8, 0.8)))
+    else:
 
-    if node_color_string:
+        node_colors = [tree.node[n].get('color', (0.8, 0.8, 0.8)) for n in tree.nodes()]
 
-        node_colors = []
+    linewidths  = [tree.node[n].get('linewidth', 0.0) for n in tree.nodes()]
 
-        for n in tree.nodes():
-            node_colors.append(tree.node[n].get(node_color_string, (0.8, 0.8, 0.8)))
+    default_node_size = float(6e4) / len(tree.nodes())
 
-    if not node_size:
-        node_size = float(6e4) / len(tree.nodes())
+    node_sizes = [tree.node[n].get('size', default_node_size) for n in tree.nodes()]
 
-    if node_size > 2000:
+    edge_colors = [tree.edge[s][t].get('color', '#000000') for s, t in tree.edges()]
+    edge_widths = [tree.edge[s][t].get('width', 0.5) for s, t in tree.edges()]
+
+    if default_node_size > 2000:
         with_labels = True
-        font_size   = node_size / 400.0
+        font_size   = default_node_size / 400.0
     else:
         with_labels = False
-        font_size   = node_size / 400.0
-
-    if not node_colors:
-        node_colors = [(0.8, 0.8, 0.8) for n in tree.nodes()]
+        font_size   = default_node_size / 400.0
 
     nx.draw(tree, pos, arrows=False,
             with_labels=with_labels, font_size=font_size,
-            edge_color=[tree.edge[s][t].get('color', '#000000') for s, t in tree.edges()],
-            width=[tree.edge[s][t].get('width', 1.0) for s, t in tree.edges()],
+            edge_color=edge_colors,
+            width=edge_widths,
             node_color=node_colors,
-            linewidths=0.0,
-            alpha=0.8,
-            node_size=node_size)
+            linewidths=linewidths,
+            alpha=alpha,
+            node_size=node_sizes)
