@@ -42,17 +42,15 @@ def _determine_t_death(tree, target):
 
     # find the most distant descendant with 't_death' label
     distances_times = []
-    times     = []
     for node in descendants:
         distance_time = (
-                         nx.shortest_path_length(tree, source=target, target=node, weight='distance'),
-                         tree.node[node].get('t_death', None)
-                        )
+            nx.shortest_path_length(tree, source=target, target=node, weight='distance'),
+            tree.node[node].get('t_death', None)
+        )
         distances_times.append(distance_time)
 
     # max_dist = max(distances)
-
-    distances_times.sort()
+    distances_times.sort(key=lambda x: x[0])
 
     end_dist, end_time = distances_times[-1]
 
