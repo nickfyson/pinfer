@@ -188,8 +188,5 @@ def add_all_inodes(tree):
 
     # instead of inscrutable numbers as the nodes,
     # we relabel using the 'name' property
-    nx.relabel_nodes(tree,
-                     {n: tree.node[n]['name'] for n in tree.nodes()},
-                     copy=False)
 
     return tree
