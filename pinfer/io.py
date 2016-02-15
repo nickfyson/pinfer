@@ -39,10 +39,12 @@ def load_notung_nhx(filename):
     for source, target in tree.edges():
         new_source = node_translator[source]
         new_target = node_translator[target]
-        graph.add_edge(new_source, new_target, **tree.edge[source][target])
+        graph.add_edge(new_source, new_target,
+                       distance=source.distance(target),
+                       **tree.edge[source][target])
 
     for s, t in graph.edges():
-        graph.edge[s][t]['distance'] = graph.edge[s][t].pop('weight')
+        graph.edge[s][t].pop('weight')
 
     # follow convention by renaming the root node to 'X0'
     root                     = nx.topological_sort(graph)[0]
