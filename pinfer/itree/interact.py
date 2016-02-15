@@ -151,6 +151,20 @@ def add_all_inodes(tree):
     # efficiency be damned!
     for (geneA, geneB) in combinations_with_replacement(tree.nodes(), 2):
 
+        # if either gene is lost, no interaction
+        if gene_is_lost(tree, geneA) or gene_is_lost(tree, geneB):
+            continue
+
+        if geneA == geneB:
+
+            inode = make_new_inode(tree, geneA, geneB)
+
+            # this new node hangs from the parent genes
+            tree.add_edge(geneA, inode, distance=0.0)
+            tree.add_edge(geneB, inode, distance=0.0)
+
+            continue
+
         # the genes must be from the same species in order to interact
         if tree.node[geneA]['S'] != tree.node[geneB]['S']:
             continue
@@ -163,10 +177,6 @@ def add_all_inodes(tree):
         if tree.node[geneB]['t_death'] <= tree.node[geneA]['t_birth']:
             continue
 
-        # if either gene is lost, no interaction
-        if gene_is_lost(tree, geneA) or gene_is_lost(tree, geneB):
-            continue
-
         inode = make_new_inode(tree, geneA, geneB)
 
         # this new node hangs from the parent genes
@@ -175,7 +185,6 @@ def add_all_inodes(tree):
 
     # now each inode must be connected to its parent interaction
     for inode in [n for n in tree.nodes() if tree.node[n]['node_type'] == 'interaction']:
-
         add_inode_parent(tree, inode)
 
     for s, t in [(s, t) for s, t in tree.edges()
