@@ -14,7 +14,7 @@ import networkx as nx
 import numpy as np
 
 
-class TestPolytree(unittest.TestCase):
+class TestInfer(unittest.TestCase):
 
     def setUp(self):
 
@@ -118,22 +118,50 @@ class TestPolytree(unittest.TestCase):
         assert (np.round(self.sprinkler.node['H']['belief'], 8) ==
                 np.array([0.00000000, 1.00000000])).all()
 
-    # def test_cancer(self):
-    #
-    #     from pinfer.infer import analyse_polytree
-    #
-    #     analyse_polytree(self.cancer)
-    #
-    #     for node in self.cancer.nodes():
-    #         print(node, self.cancer.node[node]['belief'])
-    #     print('\n\n')
-    #
-    #     self.cancer.node['C']['observation'] = np.array([1., 0.])
-    #     self.cancer.node['H']['observation'] = np.array([0., 1.])
-    #     analyse_polytree(self.cancer, n_passes=10, verbose=False)
-    #
-    #     for node in self.cancer.nodes():
-    #         print(node, self.cancer.node[node]['belief'])
+    def test_bbn(self):
+
+        from pinfer.infer import analyse_bbn
+
+        self.setUp()
+
+        analyse_bbn(self.sprinkler)
+
+        assert (np.round(self.sprinkler.node['R']['belief'], 8) == np.array([0.8, 0.2])).all()
+        assert (np.round(self.sprinkler.node['S']['belief'], 8) == np.array([0.9, 0.1])).all()
+        assert (np.round(self.sprinkler.node['W']['belief'], 8) == np.array([0.64, 0.36])).all()
+        assert (np.round(self.sprinkler.node['H']['belief'], 8) == np.array([0.728, 0.272])).all()
+
+        self.sprinkler.node['H']['observation'] = np.array([0., 1.])
+
+        analyse_bbn(self.sprinkler)
+
+        assert (np.round(self.sprinkler.node['R']['belief'], 8) ==
+                np.array([0.26470588, 0.73529412])).all()
+
+        assert (np.round(self.sprinkler.node['S']['belief'], 8) ==
+                np.array([0.66176471, 0.33823529])).all()
+
+        assert (np.round(self.sprinkler.node['W']['belief'], 8) ==
+                np.array([0.21176471, 0.78823529])).all()
+
+        assert (np.round(self.sprinkler.node['H']['belief'], 8) ==
+                np.array([0.00000000, 1.00000000])).all()
+
+        self.sprinkler.node['W']['observation'] = np.array([0., 1.])
+
+        analyse_bbn(self.sprinkler)
+
+        assert (np.round(self.sprinkler.node['R']['belief'], 8) ==
+                np.array([0.06716418, 0.93283582])).all()
+
+        assert (np.round(self.sprinkler.node['S']['belief'], 8) ==
+                np.array([0.83955224, 0.16044776])).all()
+
+        assert (np.round(self.sprinkler.node['W']['belief'], 8) ==
+                np.array([0.00000000, 1.00000000])).all()
+
+        assert (np.round(self.sprinkler.node['H']['belief'], 8) ==
+                np.array([0.00000000, 1.00000000])).all()
 
     def tearDown(self):
         pass
