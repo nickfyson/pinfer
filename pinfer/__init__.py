@@ -11,7 +11,6 @@ path_comps = [os.path.dirname(os.path.abspath(__file__)), '..', 'bayesian-belief
 sys.path.insert(1, os.path.sep.join(path_comps))
 # added at the start of the path to ensure we supercede any existing installation
 # not added to the *very* start as that can cause problems...
-print(os.path.sep.join(path_comps))
 import bayesian  # NOQA
 
 from .io import load_notung_nhx  # NOQA
