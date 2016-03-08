@@ -69,14 +69,6 @@ def _update_node(tree, node, debug_message=''):
         tree.edge[node][child]['causal'] = (causal_support *
                                             diagnostic_support * diagnostic_summary)
 
-        if (tree.edge[node][child]['causal'] == np.array([0., 0.])).all():
-            print('%s is passing non-sensical causal message!' % node)
-            print('causal_support = ', causal_support)
-            print('diagnostic_support = ', diagnostic_support)
-            print('diagnostic_summary = ', diagnostic_summary)
-            print(debug_message)
-            sys.exit()
-
     ##########
     # update outgoing diagnostic message
     ##########
@@ -104,19 +96,41 @@ def _update_node(tree, node, debug_message=''):
         tree.edge[parent][node]['diagnostic'] = diag_message
 
     ##########
-    # finally, we can now update the belief for this node
+    # normalise all messages
+    ##########
+    # in *theory* this isn't necessary, but in practice when analysing very large networks the
+    # messages get too small, causing inaccuracies due to limited floating point precision
+
+    tree.node[node]['causal']     = tree.node[node]['causal'] / sum(tree.node[node]['causal'])
+    tree.node[node]['diagnostic'] = (tree.node[node]['diagnostic'] /
+                                     sum(tree.node[node]['diagnostic']))
+
+    for child in tree.successors(node):
+        tree.edge[node][child]['causal'] = (tree.edge[node][child]['causal'] /
+                                            sum(tree.edge[node][child]['causal']))
+    for parent in tree.predecessors(node):
+        tree.edge[parent][node]['diagnostic'] = (tree.edge[parent][node]['diagnostic'] /
+                                                 sum(tree.edge[parent][node]['diagnostic']))
+
+    ##########
+    # finally, we now update the belief for this node
     ##########
     tree.node[node]['belief'] = ((tree.node[node]['causal'] * tree.node[node]['diagnostic']) /
                                  sum(tree.node[node]['causal'] * tree.node[node]['diagnostic']))
 
-    # add (temprorary?) code to catch obvious errors that may occur
-    if np.isnan(tree.node[node]['belief'][0]) or np.isnan(tree.node[node]['belief'][1]):
-        print('\tupdating %s' % node)
-        print(tree.node[node]['causal'])
-        print(tree.node[node]['diagnostic'])
-        print(tree.node[node].get('CPT', None))
-        sys.exit()
-        pass
+    ##########
+    # we add a load of sanity checks, to help ensure that we can rely on the results generated
+    ##########
+    assert not (tree.node[node]['causal']     == np.array([0., 0.])).all()
+    assert not (tree.node[node]['diagnostic'] == np.array([0., 0.])).all()
+    for child in tree.successors(node):
+        assert not (tree.edge[node][child]['causal']     == np.array([0., 0.])).all()
+        assert not (tree.edge[node][child]['diagnostic'] == np.array([0., 0.])).all()
+    for parent in tree.predecessors(node):
+        assert not (tree.edge[parent][node]['causal']     == np.array([0., 0.])).all()
+        assert not (tree.edge[parent][node]['diagnostic'] == np.array([0., 0.])).all()
+    assert not np.isnan(tree.node[node]['belief'][0])
+    assert not np.isnan(tree.node[node]['belief'][1])
 
     return
 
