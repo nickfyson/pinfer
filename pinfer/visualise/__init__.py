@@ -43,7 +43,10 @@ def vis_tree(tree, fig=None, node_cat_string=None,
 
     linewidths  = [tree.node[n].get('linewidth', 0.0) for n in tree.nodes()]
 
-    default_node_size = float(6e4) / len(tree.nodes())
+    if node_size:
+        default_node_size = node_size
+    else:
+        default_node_size = float(6e4) / len(tree.nodes())
 
     node_sizes = [tree.node[n].get('size', default_node_size) for n in tree.nodes()]
 
