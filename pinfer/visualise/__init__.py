@@ -7,7 +7,8 @@ import networkx as nx
 
 
 def vis_tree(tree, fig=None, node_cat_string=None,
-             node_size=None, layout='dot', alpha=0.8):
+             node_size=None, layout='dot', alpha=0.8,
+             edge_width=None):
     """visualise the tree with colouring according to property 'node_cat_string'"""
 
     if not fig:
@@ -48,10 +49,15 @@ def vis_tree(tree, fig=None, node_cat_string=None,
     else:
         default_node_size = float(6e4) / len(tree.nodes())
 
+    if edge_width:
+        default_edge_width = edge_width
+    else:
+        default_edge_width = 0.5
+
     node_sizes = [tree.node[n].get('size', default_node_size) for n in tree.nodes()]
 
-    edge_colors = [tree.edge[s][t].get('color', '#000000') for s, t in tree.edges()]
-    edge_widths = [tree.edge[s][t].get('width', 0.5) for s, t in tree.edges()]
+    edge_colors = [tree.edge[s][t].get('color', '#666666') for s, t in tree.edges()]
+    edge_widths = [tree.edge[s][t].get('width', default_edge_width) for s, t in tree.edges()]
 
     if default_node_size > 2000:
         with_labels = True
