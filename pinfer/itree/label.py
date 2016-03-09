@@ -2,6 +2,12 @@
 import networkx as nx
 
 
+def _bump_zero_distance_children(tree):
+
+    for s, t in [(s, t) for s, t in tree.edges() if tree.edge[s][t]['distance'] == 0.0]:
+        tree.edge[s][t]['distance'] = 1e-10
+
+
 def _label_starter_nodes(tree):
 
     # we construct a list of all non-leaf species, in tree order
@@ -75,6 +81,8 @@ def _add_t_births_and_lengths(tree):
 
 def label_birth_death(tree):
     """add birth and death time properties to each node"""
+
+    _bump_zero_distance_children(tree)
 
     # all the speciciation nodes have pre-defined times
     _label_starter_nodes(tree)
