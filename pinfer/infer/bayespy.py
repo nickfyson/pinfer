@@ -2,10 +2,10 @@
 import networkx as nx
 
 
-def analyse_bayespy(tree, update_repeats=20, verbose=True):
+def analyse_bayespy(tree, update_repeats=20, verbose=False):
     """perform VB inference on networkx representation of interaction tree"""
 
-    from bayespy.nodes import Categorical, Mixture  # Gate
+    from bayespy.nodes import Categorical, Mixture
 
     variables = {}
 
@@ -13,13 +13,15 @@ def analyse_bayespy(tree, update_repeats=20, verbose=True):
 
         # if there are no incoming edges, this node is the initial state
         if tree.in_degree(node) == 0:
-            prior = tree.node[node]['prior']
+            prior = tree.node[node]['prior'].tolist()
 
-            variables[node] = Categorical([1 - prior, prior])
+            variables[node] = Categorical(prior)
 
-        for origin, target in tree.in_edges(node):
+        for s, t in tree.in_edges(node):
 
-            p_transitions = tree.node[target]['CPT']
+            variables[s]
+
+            p_transitions = tree.node[t]['CPT'].tolist()
 
             variables[target] = Mixture(variables[origin],
                                         Categorical, p_transitions)
@@ -36,4 +38,4 @@ def analyse_bayespy(tree, update_repeats=20, verbose=True):
     inf_engine.update(repeat=update_repeats, verbose=verbose)
 
     for node, variable in variables.items():
-        tree.node[node]['posterior'] = variable.pdf(1)
+        tree.node[node]['belief'] = [variable.pdf(0), variable.pdf(1)]

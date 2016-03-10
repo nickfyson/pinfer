@@ -120,7 +120,7 @@ def cancer_example(analyse_function):
     assert (np.round(cancer.node['H']['belief'], 3) == np.array([0.353, 0.647])).all()
 
 
-from pinfer.infer import analyse_polytree, analyse_bbn
+from pinfer.infer import analyse_polytree, analyse_bbn, analyse_bayespy
 
 
 class TestPolytree(unittest.TestCase):
@@ -151,6 +151,12 @@ class TestBBN(unittest.TestCase):
 
     def tearDown(self):
         pass
+
+
+class TestBayesPy(unittest.TestCase):
+
+    def test_sprinkler(self):
+        sprinkler_example(analyse_bayespy)
 
 
 if __name__ == '__main__':
