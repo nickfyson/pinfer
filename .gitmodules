@@ -4,3 +4,6 @@
 [submodule "pomegranate"]
 	path = pomegranate
 	url = git@github.com:jmschrei/pomegranate.git
+[submodule "bayespy"]
+	path = bayespy
+	url = git@github.com:bayespy/bayespy.git
