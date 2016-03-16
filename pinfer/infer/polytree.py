@@ -177,7 +177,7 @@ def analyse_polytree(tree, pivot_node=None, verbose=False):
             print('No new observations found...')
         return tree
 
-    if not pivot_node:
+    if pivot_node not in tree.nodes():
         if verbose:
             print('Finding pivot node...')
             sys.stdout.flush()
