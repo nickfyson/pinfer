@@ -12,11 +12,11 @@ def read(fname):
 
 setup(
     name="pinfer",
-    version="0.6",
+    version="0.6.1",
     author="Nick Fyson",
     author_email="mail@nickfyson.co.uk",
     description="Inference of ancestral Protein Interaction Networks (PINs).",
-    long_description=read('README'),
+    long_description=read('README.md'),
     install_requires=read('requirements.txt'),
     license="BSD",
     keywords='PPI protein modelling interaction',
