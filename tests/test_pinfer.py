@@ -14,7 +14,7 @@ import networkx as nx
 import numpy as np
 
 
-def sprinkler_example(analyse_function):
+def get_sprinkler():
 
     sprinkler = nx.DiGraph()
 
@@ -34,6 +34,13 @@ def sprinkler_example(analyse_function):
     sprinkler.node['H']['CPT'][0, 1, :] = np.array([0.1, 0.9])
     sprinkler.node['H']['CPT'][1, 0, :] = np.array([0.0, 1.0])
     sprinkler.node['H']['CPT'][1, 1, :] = np.array([0.0, 1.0])
+
+    return sprinkler
+
+
+def sprinkler_example(analyse_function):
+
+    sprinkler = get_sprinkler()
 
     analyse_function(sprinkler)
 
@@ -75,7 +82,7 @@ def sprinkler_example(analyse_function):
             np.array([0.00000000, 1.00000000])).all()
 
 
-def cancer_example(analyse_function):
+def get_cancer():
 
     #
     # Twardy, C., Nicholson, a, Korb, K., & McNeil, J. (2004).
@@ -111,6 +118,13 @@ def cancer_example(analyse_function):
 
     cancer.node['C']['observation'] = np.array([0., 1.])
 
+    return cancer
+
+
+def cancer_example(analyse_function):
+
+    cancer = get_cancer()
+
     analyse_function(cancer)
 
     assert (np.round(cancer.node['M']['belief'], 3) == np.array([0.036, 0.964])).all()
@@ -120,7 +134,7 @@ def cancer_example(analyse_function):
     assert (np.round(cancer.node['H']['belief'], 3) == np.array([0.353, 0.647])).all()
 
 
-from pinfer.infer import analyse_polytree, analyse_bbn, analyse_bayespy
+from pinfer.infer import analyse_polytree
 
 
 class TestPolytree(unittest.TestCase):
@@ -131,32 +145,8 @@ class TestPolytree(unittest.TestCase):
     def test_sprinkler(self):
         sprinkler_example(analyse_polytree)
 
-    # def test_cancer(self):
-    #     cancer_example(analyse_polytree)
-
     def tearDown(self):
         pass
-
-
-class TestBBN(unittest.TestCase):
-
-    def setUp(self):
-        pass
-
-    def test_sprinkler(self):
-        sprinkler_example(analyse_bbn)
-
-    def test_cancer(self):
-        cancer_example(analyse_bbn)
-
-    def tearDown(self):
-        pass
-
-
-class TestBayesPy(unittest.TestCase):
-
-    def test_sprinkler(self):
-        sprinkler_example(analyse_bayespy)
 
 
 if __name__ == '__main__':
