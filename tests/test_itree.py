@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-test_pinfer
+test_itree
 ----------------------------------
 
 Tests for `itree` code.

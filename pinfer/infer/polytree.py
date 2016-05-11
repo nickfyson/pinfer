@@ -148,6 +148,10 @@ def analyse_polytree(tree, pivot_node=None, verbose=False):
         CPT axis 0->a, 1->g, 2->h
         CPT.shape = (2,2,2,2) ie. len of parents + 1
     """
+
+    if nx.cycle_basis(tree.to_undirected()):
+        raise Exception('Polytree can only be used on polytrees! (no cycles when undirected)')
+
     from itertools import combinations
 
     ##########
@@ -177,7 +181,7 @@ def analyse_polytree(tree, pivot_node=None, verbose=False):
             print('No new observations found...')
         return tree
 
-    if not pivot_node:
+    if pivot_node not in tree.nodes():
         if verbose:
             print('Finding pivot node...')
             sys.stdout.flush()
