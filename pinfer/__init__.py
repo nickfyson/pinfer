@@ -20,11 +20,6 @@ path_comps = [os.path.dirname(os.path.abspath(__file__)), '..', 'bayespy']
 sys.path.insert(1, os.path.sep.join(path_comps))
 # import bayespy  # NOQA
 
-# we add the bbn module to the runtime path
-path_comps = [os.path.dirname(os.path.abspath(__file__)), '..', 'pomegranate']
-sys.path.insert(1, os.path.sep.join(path_comps))
-# import bayesian  # NOQA
-
 from .io import load_notung_nhx  # NOQA
 from .itree import build_itree  # NOQA
 from .visualise import vis_tree  # NOQA
