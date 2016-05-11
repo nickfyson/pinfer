@@ -8,15 +8,11 @@ except ImportError:
     from distutils.core import setup
 
 
-with open('README.rst') as readme_file:
+with open('README.md') as readme_file:
     readme = readme_file.read()
 
-with open('HISTORY.rst') as history_file:
-    history = history_file.read().replace('.. :changelog:', '')
-
-requirements = [
-    # TODO: put package requirements here
-]
+with open('requirements.txt') as readme_file:
+    requirements = readme_file.readlines()
 
 test_requirements = [
     # TODO: put package test requirements here
@@ -24,9 +20,9 @@ test_requirements = [
 
 setup(
     name='pinfer',
-    version='0.1.0',
+    version='0.6rc',
     description="Inference of ancestral Protein Interaction Networks (PINs).",
-    long_description=readme + '\n\n' + history,
+    long_description=readme + '\n\n',
     author="Nick Fyson",
     author_email='mail@nickfyson.co.uk',
     url='https://github.com/nickfyson/pinfer',
@@ -45,11 +41,6 @@ setup(
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
         'Natural Language :: English',
-        "Programming Language :: Python :: 2",
-        'Programming Language :: Python :: 2.6',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
     ],
     test_suite='tests',
