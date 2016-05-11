@@ -12,7 +12,7 @@ def read(fname):
 
 setup(
     name="pinfer",
-    version="0.6",
+    version="0.6.1",
     author="Nick Fyson",
     author_email="mail@nickfyson.co.uk",
     description="Inference of ancestral Protein Interaction Networks (PINs).",
