@@ -62,11 +62,13 @@ def analyse_bbn(tree):
     """
 
     # from .. import bayesian
-    from bayesian.bbn import build_bbn
+    # from bayesian.bbn import build_bbn
+    from bayesian.factor_graph import build_graph
 
     functions = create_node_functions(tree)
 
-    g = build_bbn(functions)
+    # g = build_bbn(functions)
+    g = build_graph(functions)
 
     observations = {}
     for node in [n for n in tree.nodes() if 'observation' in tree.node[n]]:
