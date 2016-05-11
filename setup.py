@@ -1,41 +1,27 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+import os
+from setuptools import setup
 
 
-try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup
+def read(fname):
+    # Utility function to read the README file.
+    # Used for the long_description.  It's nice, because now 1) we have a top level
+    # README file and 2) it's easier to type in the README file than to put a raw
+    # string in below ...
+    return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
-
-with open('README.md') as readme_file:
-    readme = readme_file.read()
-
-with open('requirements.txt') as readme_file:
-    requirements = readme_file.readlines()
-
-test_requirements = [
-    # TODO: put package test requirements here
-]
 
 setup(
-    name='pinfer',
-    version='0.6rc',
-    description="Inference of ancestral Protein Interaction Networks (PINs).",
-    long_description=readme + '\n\n',
+    name="pinfer",
+    version="0.6rc",
     author="Nick Fyson",
-    author_email='mail@nickfyson.co.uk',
-    url='https://github.com/nickfyson/pinfer',
-    packages=[
-        'pinfer',
-    ],
-    package_dir={'pinfer':
-                 'pinfer'},
-    include_package_data=True,
-    install_requires=requirements,
+    author_email="mail@nickfyson.co.uk",
+    description="Inference of ancestral Protein Interaction Networks (PINs).",
+    long_description=read('README'),
+    install_requires=read('requirements.txt'),
     license="BSD",
-    zip_safe=False,
-    keywords='pinfer',
+    keywords='PPI protein modelling interaction',
+    url='https://github.com/nickfyson/pinfer',
+    packages=['pinfer', 'pinfer.infer', 'pinfer.itree', 'pinfer.visualise', 'tests'],
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Developers',
@@ -43,6 +29,4 @@ setup(
         'Natural Language :: English',
         'Programming Language :: Python :: 3.4',
     ],
-    test_suite='tests',
-    tests_require=test_requirements
 )
