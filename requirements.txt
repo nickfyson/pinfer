@@ -1,6 +1,7 @@
-wheel==0.23.0
-networkx
+networkx==1.9.1
 numpy
 matplotlib
 seaborn
 biopython
+pygraphviz
+sklearn

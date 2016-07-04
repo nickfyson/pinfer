@@ -45,3 +45,5 @@ docs/_build
 docs/classes.png
 docs/modules.rst
 docs/pinfer.rst
+examples/.ipynb_checkpoints
+examples/_cache
