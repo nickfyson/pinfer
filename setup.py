@@ -12,9 +12,9 @@ def read(fname):
 
 setup(
     name="pinfer",
-    version="0.6.2",
+    version="v0.7",
     author="Nick Fyson",
-    author_email="mail@nickfyson.co.uk",
+    author_email="nick@fyson.net",
     description="Inference of ancestral Protein Interaction Networks (PINs).",
     long_description=read('README.md'),
     install_requires=read('requirements.txt'),
@@ -23,10 +23,9 @@ setup(
     url='https://github.com/nickfyson/pinfer',
     packages=['pinfer', 'pinfer.infer', 'pinfer.itree', 'pinfer.visualise', 'tests'],
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
+        'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
         'Natural Language :: English',
-        'Programming Language :: Python :: 3.4',
     ],
 )
