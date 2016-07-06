@@ -15,7 +15,7 @@ def read(fname):
 
 setup(
     name="pinfer",
-    version="v0.7.1",
+    version="v0.7.2",
     author="Nick Fyson",
     author_email="nick@fyson.net",
     description="Inference of ancestral Protein Interaction Networks (PINs).",
@@ -27,8 +27,19 @@ setup(
     packages=find_packages(),
     classifiers=[
         'Development Status :: 3 - Alpha',
+        'Intended Audience :: Science/Research',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
         'Natural Language :: English',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+        'Operating System :: Microsoft :: Windows',
+        'Operating System :: POSIX',
+        'Operating System :: Unix',
+        'Operating System :: MacOS',
     ],
 )
