@@ -1,5 +1,8 @@
 import os
-from setuptools import setup
+try:
+    from setuptools import setup, find_packages
+except ImportError:
+    from distutils.core import setup, find_packages
 
 
 def read(fname):
@@ -12,7 +15,7 @@ def read(fname):
 
 setup(
     name="pinfer",
-    version="v0.7",
+    version="v0.7.1",
     author="Nick Fyson",
     author_email="nick@fyson.net",
     description="Inference of ancestral Protein Interaction Networks (PINs).",
@@ -21,7 +24,7 @@ setup(
     license="BSD",
     keywords='PPI protein modelling interaction',
     url='https://github.com/nickfyson/pinfer',
-    packages=['pinfer', 'pinfer.infer', 'pinfer.itree', 'pinfer.visualise', 'tests'],
+    packages=find_packages(),
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
