@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """module docstring here"""
 
+from __future__ import print_function, division
+
 import networkx as nx
 from networkx.exception import NetworkXNoPath
 
