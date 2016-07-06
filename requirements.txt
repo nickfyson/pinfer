@@ -1,6 +1,6 @@
 networkx==1.9.1
 numpy
-matplotlib
+matplotlib==1.4.3
 seaborn
 biopython
 pygraphviz
